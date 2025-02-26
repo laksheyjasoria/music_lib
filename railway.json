@@ -1,0 +1,12 @@
+{
+  "build": {
+    "dockerfilePath": "Dockerfile"
+  },
+  "run": {
+    "command": "python app.py",
+    "env": {
+      "PORT": "5000"
+    }
+  }
+}
+s
