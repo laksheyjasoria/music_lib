@@ -46,21 +46,24 @@ def get_suggestions():
     youtube_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId={video_id}&type=video&key={YOUTUBE_API_KEY}&maxResults=30"
 
     try:
-        response = requests.get(youtube_url)
-        data = response.json()
+    response = requests.get(youtube_url)
+    data = response.json()
 
-        if "items" not in data:
-            return jsonify({"error": "Failed to fetch suggestions"}), 500
+    if "items" not in data:
+        return jsonify({"error": "Failed to fetch suggestions"}), 500
 
-        suggestions = []
-        for item in data["items"]:
-            suggestions.append({
-                "videoId": item["id"]["videoId"],
-                "title": item["snippet"]["title"],
-                "thumbnail": item["snippet"]["thumbnails"]["high"]["url"]
-            })
+    suggestions = []
+    for item in data["items"]:
+        suggestions.append({
+            "videoId": item["id"]["videoId"],
+            "title": item["snippet"]["title"],
+            "thumbnail": item["snippet"]["thumbnails"]["high"]["url"]
+        })
 
-        return jsonify({"videoId": video_id, "suggestions": suggestions})
+    return jsonify({"videoId": video_id, "suggestions": suggestions})
+
+except Exception as e:  # <-- Add this except block
+    return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
