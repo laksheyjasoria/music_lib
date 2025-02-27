@@ -34,6 +34,34 @@ def get_audio():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+YOUTUBE_API_KEY = "AIzaSyAxSg2uRGJ2eZ1nEhr_oEYeawkGXPkBulA"  # Replace with your API key
+
+@app.route("/get_suggestions", methods=["GET"])
+def get_suggestions():
+    video_id = request.args.get("videoId")
+    if not video_id:
+        return jsonify({"error": "Missing 'videoId' parameter"}), 400
+
+    # YouTube API URL for related videos
+    youtube_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId={video_id}&type=video&key={YOUTUBE_API_KEY}&maxResults=30"
+
+    try:
+        response = requests.get(youtube_url)
+        data = response.json()
+
+        if "items" not in data:
+            return jsonify({"error": "Failed to fetch suggestions"}), 500
+
+        suggestions = []
+        for item in data["items"]:
+            suggestions.append({
+                "videoId": item["id"]["videoId"],
+                "title": item["snippet"]["title"],
+                "thumbnail": item["snippet"]["thumbnails"]["high"]["url"]
+            })
+
+        return jsonify({"videoId": video_id, "suggestions": suggestions})
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
