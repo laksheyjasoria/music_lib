@@ -5,126 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YouTube Audio Extractor</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #121212;
-            color: white;
-            padding: 20px;
-        }
-        input, button {
-            padding: 10px;
-            font-size: 16px;
-            margin: 5px;
-        }
-        input {
-            width: 60%;
-        }
-        button {
-            cursor: pointer;
-            background-color: #ff0000;
-            color: white;
-            border: none;
-        }
-        .video-container {
-            margin-top: 20px;
-        }
-        img {
-            width: 300px;
-            border-radius: 10px;
-            margin-top: 10px;
-        }
-        .audio-link {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #00c853;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        audio {
-            margin-top: 20px;
-            width: 80%;
-        }
-        .error {
-            color: red;
-            margin-top: 20px;
-        }
-        .carousel {
-            display: flex;
-            overflow-x: auto;
-            gap: 10px;
-            padding: 10px;
-            margin-top: 20px;
-            scrollbar-width: none;
-        }
-        .carousel-item {
-            cursor: pointer;
-            width: 120px;
-            flex-shrink: 0;
-            text-align: center;
-        }
-        .carousel-item img {
-            width: 100px;
-            border-radius: 8px;
-        }
-        .carousel-item p {
-            font-size: 12px;
-            margin-top: 5px;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #121212; color: white; padding: 20px; }
+        input, button { padding: 10px; font-size: 16px; margin: 5px; }
+        input { width: 60%; }
+        button { cursor: pointer; background-color: #ff0000; color: white; border: none; }
+        .video-container, .suggestions-container { margin-top: 20px; }
+        img { width: 300px; border-radius: 10px; margin-top: 10px; }
+        .audio-link { display: inline-block; margin-top: 10px; padding: 10px; background-color: #00c853; color: white; text-decoration: none; border-radius: 5px; }
+        audio { margin-top: 20px; width: 80%; }
+        .error { color: red; margin-top: 20px; }
+        .carousel, .suggestions { display: flex; overflow-x: auto; gap: 10px; padding: 10px; margin-top: 20px; scrollbar-width: none; }
+        .carousel-item, .suggestion-item { cursor: pointer; width: 120px; flex-shrink: 0; text-align: center; background: #333; padding: 5px; border-radius: 8px; color: white; }
+        .carousel-item img, .suggestion-item img { width: 100px; border-radius: 8px; }
     </style>
 </head>
 <body>
     <h1>YouTube Audio Extractor</h1>
     <input type="text" id="searchQuery" placeholder="Enter song name...">
     <button onclick="searchVideo()">Search</button>
-
+    
     <div id="videoResult" class="video-container"></div>
-    <div id="carouselContainer" class="carousel"></div>
-    <p id="errorMessage" class="error"></p>
     <audio id="audioPlayer" controls autoplay></audio>
 
+    <h2>Related Searches</h2>
+    <div id="carouselContainer" class="carousel"></div>
+    
+    <h2>Suggested Searches</h2>
+    <div id="suggestionsContainer" class="suggestions"></div>
+
+    <p id="errorMessage" class="error"></p>
+    
     <script>
-        const API_KEY = "YOUR_YOUTUBE_API_KEY";  // Replace with your YouTube API key
-        const BACKEND_URL = "https://musiclib-production.up.railway.app/get_audio"; // Your backend URL
+        const API_KEY = "AIzaSyAxSg2uRGJ2eZ1nEhr_oEYeawkGXPkBulA";  
+        const BACKEND_URL = "https://musiclib-production.up.railway.app/get_audio";
 
         function showError(message) {
             document.getElementById("errorMessage").textContent = "⚠️ " + message;
-            document.getElementById("videoResult").innerHTML = "";
-            document.getElementById("audioPlayer").src = "";
         }
 
         async function fetchAudio(videoId, title, thumbnail) {
-            let retries = 5;
-            while (retries > 0) {
-                try {
-                    const response = await fetch(`${BACKEND_URL}?videoId=${videoId}`);
-                    if (!response.ok) throw new Error("Failed to fetch audio");
-                    const audioData = await response.json();
-                    if (!audioData.audioUrl) throw new Error("No audio URL returned.");
-
-                    // Update main video & audio player
-                    document.getElementById("videoResult").innerHTML = `
-                        <h2>${title}</h2>
-                        <img src="${thumbnail}" alt="${title}">
-                        <p>🎵 Now Playing: ${title}</p>
-                        <a class="audio-link" href="${audioData.audioUrl}" target="_blank">🔽 Download Audio</a>
-                    `;
-
-                    const audioPlayer = document.getElementById("audioPlayer");
-                    audioPlayer.src = audioData.audioUrl;
-                    audioPlayer.play();
-                    return;
-                } catch (error) {
-                    retries--;
-                    console.error("Retrying...", retries);
-                    if (retries === 0) showError("Error fetching audio. Try again later.");
-                }
+            try {
+                const response = await fetch(`${BACKEND_URL}?videoId=${videoId}`);
+                if (!response.ok) throw new Error("Failed to fetch audio");
+                const audioData = await response.json();
+                if (!audioData.audioUrl) throw new Error("No audio URL returned.");
+                
+                document.getElementById("videoResult").innerHTML = `
+                    <h2>${title}</h2>
+                    <img src="${thumbnail}" alt="${title}">
+                    <p>🎵 Now Playing: ${title}</p>
+                    <a class="audio-link" href="${audioData.audioUrl}" download="${title}.mp3">🔽 Download Audio</a>
+                `;
+                
+                const audioPlayer = document.getElementById("audioPlayer");
+                audioPlayer.src = audioData.audioUrl;
+                audioPlayer.play();
+            } catch (error) {
+                showError("Error fetching audio. Try again later.");
             }
         }
 
-        function searchVideo() {
+        async function searchVideo() {
             const query = document.getElementById("searchQuery").value;
             if (!query) {
                 showError("Please enter a search query.");
@@ -134,41 +75,74 @@
             document.getElementById("errorMessage").textContent = "";
             document.getElementById("videoResult").innerHTML = "<p>Searching...</p>";
             document.getElementById("carouselContainer").innerHTML = "";
+            document.getElementById("suggestionsContainer").innerHTML = "";
 
-            fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=5&key=${API_KEY}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.items && data.items.length > 0) {
-                        const firstVideo = data.items[0];
-                        const videoId = firstVideo.id.videoId;
-                        const title = firstVideo.snippet.title;
-                        const thumbnail = firstVideo.snippet.thumbnails.high.url;
+            try {
+                const videoResponse = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=50&key=${API_KEY}`);
+                const videoData = await videoResponse.json();
 
-                        fetchAudio(videoId, title, thumbnail);
+                if (videoData.items && videoData.items.length > 0) {
+                    const firstVideo = videoData.items[0];
+                    fetchAudio(firstVideo.id.videoId, firstVideo.snippet.title, firstVideo.snippet.thumbnails.high.url);
 
-                        // Create carousel for other results
-                        const carouselContainer = document.getElementById("carouselContainer");
-                        carouselContainer.innerHTML = ""; // Clear previous results
+                    // Related Searches (Carousel)
+                    const carouselContainer = document.getElementById("carouselContainer");
+                    videoData.items.slice(1, 10).forEach(video => {
+                        const item = document.createElement("div");
+                        item.className = "carousel-item";
+                        item.innerHTML = `<img src="${video.snippet.thumbnails.default.url}" alt="${video.snippet.title}"><p>${video.snippet.title}</p>`;
+                        item.onclick = () => fetchAudio(video.id.videoId, video.snippet.title, video.snippet.thumbnails.high.url);
+                        carouselContainer.appendChild(item);
+                    });
+                } else {
+                    showError("No results found.");
+                }
 
-                        data.items.slice(1).forEach(video => {
-                            const videoId = video.id.videoId;
-                            const title = video.snippet.title;
-                            const thumbnail = video.snippet.thumbnails.default.url;
+                // Suggested Searches
+                fetchSuggestedSearches(query);
+            } catch (error) {
+                showError("Error fetching video or suggestions.");
+            }
+        }
 
-                            const item = document.createElement("div");
-                            item.className = "carousel-item";
-                            item.innerHTML = `
-                                <img src="${thumbnail}" alt="${title}">
-                                <p>${title}</p>
-                            `;
-                            item.onclick = () => fetchAudio(videoId, title, thumbnail);
-                            carouselContainer.appendChild(item);
-                        });
-                    } else {
-                        showError("No results found. Try a different search.");
-                    }
-                })
-                .catch(error => showError("Error fetching video. Please check your API key and try again."));
+        async function fetchSuggestedSearches(query) {
+            try {
+                
+                const suggestionResponse = await fetch(`https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=tum`);
+                const suggestionData = await suggestionResponse.json();
+ showError(suggestionData[1].length);
+                if (suggestionData[1].length > 0) {
+
+                    const suggestionsContainer = document.getElementById("suggestionsContainer");
+                    suggestionsContainer.innerHTML = ""; 
+
+                    suggestionData[1].slice(0, suggestionData[1].length).forEach(async (suggestion) => {
+                        try {
+                            const youtubeResponse = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(suggestion)}&type=video&key=${API_KEY}`);
+                            const youtubeData = await youtubeResponse.json();
+
+                            if (youtubeData.items.length > 0) {
+                                const video = youtubeData.items[0]; 
+                                const videoId = video.id.videoId;
+                                const title = video.snippet.title;
+                                const thumbnail = video.snippet.thumbnails.default.url;
+
+                                const item = document.createElement("div");
+                                item.className = "suggestion-item";
+                                item.innerHTML = `<img src="${thumbnail}" alt="${title}"><p>${title}</p>`;
+                                item.onclick = () => fetchAudio(videoId, title, thumbnail);
+                                suggestionsContainer.appendChild(item);
+                            }
+                        } catch (error) {
+                            console.error(`Error fetching YouTube data for suggestion: ${suggestion}`, error);
+                        }
+                    });
+                }
+} catch (error) {
+    showError(`Error fetching suggested searches: ${error.message}\n\nStack Trace:\n${error.stack}`);
+}
+
+
         }
     </script>
 </body>
