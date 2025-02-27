@@ -34,7 +34,7 @@ def get_audio():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-YOUTUBE_API_KEY = "AIzaSyAxSg2uRGJ2eZ1nEhr_oEYeawkGXPkBulA"  # Replace with your API key
+
 
 @app.route("/get_suggestions", methods=["GET"])
 def get_suggestions():
@@ -43,7 +43,7 @@ def get_suggestions():
         return jsonify({"error": "Missing 'videoId' parameter"}), 400
 
     # YouTube API URL for related videos
-    youtube_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId={video_id}&type=video&key={YOUTUBE_API_KEY}&maxResults=30"
+    youtube_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId={video_id}&type=video&key=AIzaSyAxSg2uRGJ2eZ1nEhr_oEYeawkGXPkBulA&maxResults=30"
 
     try:
     response = requests.get(youtube_url)
