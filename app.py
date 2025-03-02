@@ -8,7 +8,7 @@ import random
 app = Flask(__name__)
 CORS(app)
 
-YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY"
+YOUTUBE_API_KEY = "AIzaSyAxSg2uRGJ2eZ1nEhr_oEYeawkGXPkBulA"
 music_queue = []
 
 
