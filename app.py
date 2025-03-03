@@ -76,6 +76,17 @@ def get_audio():
     
     return jsonify({"videoId": video_id, "audioUrl": audio_url})
 
+
+@app.route("/about_us", methods=["GET"])
+def about_us():
+    return jsonify({
+        "name": "Music API",
+        "version": "1.0",
+        "description": "An API to fetch trending music, search songs, and get audio streams from YouTube.",
+        "developer": "Your Name"
+    })
+
+
 def is_short_video(duration):
     if "M" not in duration and "H" not in duration:
         return True  # Video is less than 1 minute (Shorts)
