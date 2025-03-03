@@ -8,7 +8,7 @@ from collections import defaultdict
 app = Flask(__name__)
 CORS(app)
 
-YOUTUBE_API_KEY = "YOUR_YOUTUBE_API_KEY"
+YOUTUBE_API_KEY = "AIzaSyAxSg2uRGJ2eZ1nEhr_oEYeawkGXPkBulA"
 
 song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
 
@@ -140,6 +140,53 @@ def download_audio():
         return send_file(file_path, as_attachment=True)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/about_us", methods=["GET"])
+def about_us():
+    return jsonify({
+        "name": "Noizzify",
+        "version": "1.0",
+        "description": "An API to fetch trending music, search songs, and get audio streams from YouTube.",
+        "developer": "Lakshey Kumar :)"
+    })
+
+def is_short_video(duration):
+    if "M" not in duration and "H" not in duration:
+        return True  # Video is less than 1 minute (Shorts)
+    return False
+
+@app.route("/search_music", methods=["GET"])
+def search_music_with_audio():
+    query = request.args.get("query")
+    if not query:
+        return jsonify({"error": "Missing 'query' parameter"}), 400
+
+    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=IN&maxResults=20&q={query}&key={YOUTUBE_API_KEY}"
+    response = requests.get(url)
+    data = response.json()
+
+    if "items" not in data:
+        return jsonify({"error": "Failed to fetch search results"}), 500
+
+    search_results = []
+    for item in data["items"]:
+        if "shorts" in item["snippet"]["title"].lower() or "shorts" in item["snippet"]["description"].lower():
+            continue
+        
+        video_id = item["id"]["videoId"]
+        video_title = item["snippet"]["title"]
+        thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
+
+        
+        search_results.append({
+            "videoId": video_id,
+            "title": video_title,
+            "thumbnail": thumbnail,
+          
+        })
+
+    return jsonify({"search_results": search_results})
+
 
 def get_audio_url(video_id):
     try:
