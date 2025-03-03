@@ -176,17 +176,6 @@ def search_music_with_audio():
     return jsonify({"search_results": search_results})
 
 
-@app.route("/get_audio", methods=["GET"])
-def get_audio():
-    video_id = request.args.get("videoId")
-    if not video_id:
-        return jsonify({"error": "Missing 'videoId' parameter"}), 400
-    
-    audio_url = get_audio_url(video_id)
-    if not audio_url:
-        return jsonify({"error": "Failed to get audio URL"}), 500
-    
-    return jsonify({"videoId": video_id, "audioUrl": audio_url})
 
 
 @app.route("/download_audio", methods=["GET"])
