@@ -32,7 +32,7 @@ def get_trending_music():
 
     return jsonify({"trending_music": trending_music})
 
-@app.route("/search_music_with_audio", methods=["GET"])
+@app.route("/search_music", methods=["GET"])
 def search_music():
     query = request.args.get("query")
     if not query:
