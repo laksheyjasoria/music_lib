@@ -8,6 +8,76 @@ app = Flask(__name__)
 CORS(app)
 
 YOUTUBE_API_KEY = "AIzaSyAxSg2uRGJ2eZ1nEhr_oEYeawkGXPkBulA"
+
+
+song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
+
+
+# Get Audio Stream URL and Track Plays
+@app.route("/get_audio", methods=["GET"])
+def get_audio():
+    video_id = request.args.get("videoId")
+    if not video_id:
+        return jsonify({"error": "Missing 'videoId' parameter"}), 400
+
+    # Fetch video details (title & thumbnail) if not already stored
+    if song_play_count[video_id]["count"] == 0:
+        video_details = get_video_details(video_id)
+        if not video_details:
+            return jsonify({"error": "Failed to fetch video details"}), 500
+        song_play_count[video_id]["title"] = video_details["title"]
+        song_play_count[video_id]["thumbnail"] = video_details["thumbnail"]
+
+    # Increment play count
+    song_play_count[video_id]["count"] += 1
+
+    # Fetch audio URL
+    audio_url = get_audio_url(video_id)
+    if not audio_url:
+        return jsonify({"error": "Failed to get audio URL"}), 500
+
+    return jsonify({
+        "videoId": video_id,
+        "title": song_play_count[video_id]["title"],
+        "thumbnail": song_play_count[video_id]["thumbnail"],
+        "audioUrl": audio_url
+    })
+
+
+# Get Most Played Songs (Sorted by Play Count)
+@app.route("/get_most_played_songs", methods=["GET"])
+def get_most_played_songs():
+    sorted_songs = sorted(song_play_count.items(), key=lambda x: x[1]["count"], reverse=True)
+    most_played_songs = [
+        {
+            "videoId": video_id,
+            "title": data["title"],
+            "thumbnail": data["thumbnail"],
+            "play_count": data["count"]
+        }
+        for video_id, data in sorted_songs[:50]  # Return top 50 most played songs
+    ]
+
+    return jsonify({"most_played_songs": most_played_songs})
+@app.route("/get_details", methods=["GET"])
+def get_details():
+     video_id = request.args.get("videoId")
+    return get_vedio_details(video_id)
+
+def get_video_details(video_id):
+    url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet&id={video_id}&key={YOUTUBE_API_KEY}"
+    response = requests.get(url)
+    data = response.json()
+
+    if "items" not in data or not data["items"]:
+        return None
+
+    video_info = data["items"][0]["snippet"]
+    return {
+        "title": video_info["title"],
+        "thumbnail": video_info["thumbnails"]["high"]["url"]
+    }
+
 @app.route("/get_related_music", methods=["GET"])
 def get_related_music():
     video_id = request.args.get("videoId")
@@ -78,7 +148,7 @@ def search_music_with_audio():
     if not query:
         return jsonify({"error": "Missing 'query' parameter"}), 400
 
-    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=IN&maxResults=10&q={query}&key={YOUTUBE_API_KEY}"
+    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=IN&maxResults=20&q={query}&key={YOUTUBE_API_KEY}"
     response = requests.get(url)
     data = response.json()
 
