@@ -124,22 +124,47 @@ def get_trending_music():
 
 @app.route("/download_audio", methods=["GET"])
 def download_audio():
-    audio_url = request.args.get("audioUrl")
-    file_name = request.args.get("fileName", "audio.mp3")
-    if not audio_url:
-        return jsonify({"error": "Missing 'audioUrl' parameter"}), 400
-    
+    video_id = request.args.get("videoId")
+
+    if not video_id:
+        return jsonify({"error": "Missing 'videoId' parameter"}), 400
+
     try:
+        # Fetch video details
+        video_details = get_video_details(video_id)
+        if not video_details:
+            return jsonify({"error": "Failed to retrieve video details"}), 500
+
+        title = video_details["title"]
+
+        # Extract filename (before first occurrence of "|")
+        sanitized_title = title.split("|")[0].strip()  # Get part before "|"
+        sanitized_title = "".join(c for c in sanitized_title if c.isalnum() or c in (" ", "-", "_"))  # Remove special characters
+        file_name = f"{sanitized_title}.mp3"
+
+        # Fetch audio URL
+        audio_url = get_audio_url(video_id)
+        if not audio_url:
+            return jsonify({"error": "Failed to retrieve audio URL"}), 500
+
+        # Clean URL
+        audio_url = audio_url.strip().strip("\"'")  
+        
         response = requests.get(audio_url, stream=True)
+        response.raise_for_status()  
+        
         file_path = os.path.join("downloads", file_name)
         os.makedirs("downloads", exist_ok=True)
+        
         with open(file_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
+                    
         return send_file(file_path, as_attachment=True)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Failed to download: {str(e)}"}), 500
 
 @app.route("/about_us", methods=["GET"])
 def about_us():
