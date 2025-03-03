@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        button { margin: 10px; padding: 10px; cursor: pointer; }
+        #queue { margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>Music Player</h1>
+    <input type="text" id="songId" placeholder="Enter YouTube Video ID">
+    <button onclick="addToQueue()">Add to Queue</button>
+    <button onclick="shuffleQueue()">Shuffle</button>
+    <button onclick="skipSong()">Skip</button>
+    <button onclick="repeatSong()">Repeat</button>
+
+    <h2>Queue:</h2>
+    <div id="queue"></div>
+
+    <script>
+        async function addToQueue() {
+            let videoId = document.getElementById("songId").value;
+            if (!videoId) return alert("Enter a Video ID");
+
+            let response = await fetch("http://localhost:5000/add_to_queue", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ videoId, title: `Song ${videoId}` })
+            });
+            let data = await response.json();
+            updateQueue(data.queue);
+        }
+
+        async function shuffleQueue() {
+            let response = await fetch("http://localhost:5000/shuffle_queue", { credentials: "include" });
+            let data = await response.json();
+            updateQueue(data.queue);
+        }
+
+        async function skipSong() {
+            let response = await fetch("http://localhost:5000/skip", { credentials: "include" });
+            let data = await response.json();
+            updateQueue(data.queue);
+        }
+
+        async function repeatSong() {
+            let response = await fetch("http://localhost:5000/repeat", { credentials: "include" });
+            let data = await response.json();
+            updateQueue(data.queue);
+        }
+
+        async function fetchQueue() {
+            let response = await fetch("http://localhost:5000/get_queue", { credentials: "include" });
+            let data = await response.json();
+            updateQueue(data.queue);
+        }
+
+        function updateQueue(queue) {
+            let queueDiv = document.getElementById("queue");
+            queueDiv.innerHTML = queue.map(song => `<p>${song.title} (${song.videoId})</p>`).join("");
+        }
+
+        fetchQueue();
+    </script>
+
+</body>
+</html>
