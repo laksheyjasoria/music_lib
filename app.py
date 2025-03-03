@@ -9,6 +9,26 @@ CORS(app)
 
 YOUTUBE_API_KEY = "AIzaSyAxSg2uRGJ2eZ1nEhr_oEYeawkGXPkBulA"
 
+
+@app.route("/download_audio", methods=["GET"])
+def download_audio():
+    audio_url = request.args.get("audioUrl")
+    file_name = request.args.get("fileName", "audio.mp3")
+    if not audio_url:
+        return jsonify({"error": "Missing 'audioUrl' parameter"}), 400
+    
+    try:
+        response = requests.get(audio_url, stream=True)
+        file_path = os.path.join("downloads", file_name)
+        os.makedirs("downloads", exist_ok=True)
+        with open(file_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        return send_file(file_path, as_attachment=True)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+        
 @app.route("/get_trending_music", methods=["GET"])
 def get_trending_music():
     url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&videoCategoryId=10&regionCode=IN&maxResults=20&key={YOUTUBE_API_KEY}"
@@ -82,7 +102,7 @@ def about_us():
         "name": "Music API",
         "version": "1.0",
         "description": "An API to fetch trending music, search songs, and get audio streams from YouTube.",
-        "developer": "Your Name"
+        "developer": "Lakshey Kumar :)"
     })
 
 
