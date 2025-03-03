@@ -33,7 +33,7 @@ def get_trending_music():
     return jsonify({"trending_music": trending_music})
 
 @app.route("/search_music_with_audio", methods=["GET"])
-def search_music_with_audio():
+def search_music():
     query = request.args.get("query")
     if not query:
         return jsonify({"error": "Missing 'query' parameter"}), 400
@@ -54,12 +54,11 @@ def search_music_with_audio():
         video_title = item["snippet"]["title"]
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
 
-        audio_url = get_audio_url(video_id)
+       
         search_results.append({
             "videoId": video_id,
             "title": video_title,
             "thumbnail": thumbnail,
-            "audioUrl": audio_url
         })
 
     return jsonify({"search_results": search_results})
