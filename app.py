@@ -63,7 +63,7 @@ def get_most_played_songs():
 @app.route("/get_details", methods=["GET"])
 def get_details():
      video_id = request.args.get("videoId")
-    return get_vedio_details(video_id)
+     return get_vedio_details(video_id)
 
 def get_video_details(video_id):
     url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet&id={video_id}&key={YOUTUBE_API_KEY}"
