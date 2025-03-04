@@ -8,17 +8,12 @@ from collections import defaultdict
 app = Flask(__name__)
 CORS(app)
 
-print("Environment Variables:", os.environ)  # Debugging line
-print("here "+os.getenv("YOUTUBE_API_KEY"))
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+API_KEY = os.getenv("API_KEY")
 
-if not YOUTUBE_API_KEY:
-    raise ValueError("YOUTUBE_API_KEY is not set in environment variables.")
-
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-if not YOUTUBE_API_KEY:
-    raise ValueError("YOUTUBE_API_KEY is not set in environment variables.")
-
+# Debugging: Print to verify (Remove in production)
+print("YOUTUBE_API_KEY:", YOUTUBE_API_KEY)
+print("API_KEY:", API_KEY)
 
 song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
 
