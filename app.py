@@ -8,8 +8,8 @@ from collections import defaultdict
 app = Flask(__name__)
 CORS(app)
 
+# Load YouTube API Key
 YT_API_KEY = os.getenv("API_KEY")
-print(YT_API_KEY)
 if not YT_API_KEY:
     raise ValueError("API_KEY is not set in environment variables.")
 
@@ -76,36 +76,6 @@ def get_video_details(video_id):
         "thumbnail": video_info["thumbnails"]["high"]["url"]
     }
 
-@app.route("/get_related_music", methods=["GET"])
-def get_related_music():
-    video_id = request.args.get("videoId")
-    if not video_id:
-        return jsonify({"error": "Missing 'videoId' parameter"}), 400
-
-    video_details = get_video_details(video_id)
-    if not video_details:
-        return jsonify({"error": "Failed to fetch video details"}), 500
-
-    search_query = f"{video_details['title']} {video_details['title']}"
-    search_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=10&q={search_query}&key={YT_API_KEY}"
-    
-    search_response = requests.get(search_url)
-    search_data = search_response.json()
-
-    if "items" not in search_data:
-        return jsonify({"error": "Failed to fetch related music"}), 500
-
-    related_music = [
-        {
-            "videoId": item["id"]["videoId"],
-            "title": item["snippet"]["title"],
-            "thumbnail": item["snippet"]["thumbnails"]["high"]["url"]
-        }
-        for item in search_data["items"]
-    ]
-
-    return jsonify({"related_music": related_music})
-
 @app.route("/get_trending_music", methods=["GET"])
 def get_trending_music():
     url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&videoCategoryId=10&regionCode=IN&maxResults=30&key={YT_API_KEY}"
@@ -125,66 +95,8 @@ def get_trending_music():
     ]
     return jsonify({"trending_music": trending_music})
 
-@app.route("/download_audio", methods=["GET"])
-def download_audio():
-    video_id = request.args.get("videoId")
-
-    if not video_id:
-        return jsonify({"error": "Missing 'videoId' parameter"}), 400
-
-    try:
-        # Fetch video details
-        video_details = get_video_details(video_id)
-        if not video_details:
-            return jsonify({"error": "Failed to retrieve video details"}), 500
-
-        title = video_details["title"]
-
-        # Extract filename (before first occurrence of "|")
-        sanitized_title = title.split("|")[0].strip()  # Get part before "|"
-        sanitized_title = "".join(c for c in sanitized_title if c.isalnum() or c in (" ", "-", "_"))  # Remove special characters
-        file_name = f"{sanitized_title}.mp3"
-
-        # Fetch audio URL
-        audio_url = get_audio_url(video_id)
-        if not audio_url:
-            return jsonify({"error": "Failed to retrieve audio URL"}), 500
-
-        # Clean URL
-        audio_url = audio_url.strip().strip("\"'")  
-        
-        response = requests.get(audio_url, stream=True)
-        response.raise_for_status()  
-        
-        file_path = os.path.join("downloads", file_name)
-        os.makedirs("downloads", exist_ok=True)
-        
-        with open(file_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    f.write(chunk)
-                    
-        return send_file(file_path, as_attachment=True)
-
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Failed to download: {str(e)}"}), 500
-
-@app.route("/about_us", methods=["GET"])
-def about_us():
-    return jsonify({
-        "name": "Noizzify",
-        "version": "1.0",
-        "description": "An API to fetch trending music, search songs, and get audio streams from YouTube.",
-        "developer": "Lakshey Kumar :)"
-    })
-
-def is_short_video(duration):
-    if "M" not in duration and "H" not in duration:
-        return True  # Video is less than 1 minute (Shorts)
-    return False
-
 @app.route("/search_music", methods=["GET"])
-def search_music_with_audio():
+def search_music():
     query = request.args.get("query")
     if not query:
         return jsonify({"error": "Missing 'query' parameter"}), 400
@@ -198,23 +110,53 @@ def search_music_with_audio():
 
     search_results = []
     for item in data["items"]:
-        if "shorts" in item["snippet"]["title"].lower() or "shorts" in item["snippet"]["description"].lower() or get_duration_in_seconds(item["snippet"]["duration"]) < 60:
-            continue
-        
         video_id = item["id"]["videoId"]
         video_title = item["snippet"]["title"]
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
 
-        
         search_results.append({
             "videoId": video_id,
             "title": video_title,
             "thumbnail": thumbnail,
-          
         })
 
     return jsonify({"search_results": search_results})
 
+@app.route("/download_audio", methods=["GET"])
+def download_audio():
+    video_id = request.args.get("videoId")
+
+    if not video_id:
+        return jsonify({"error": "Missing 'videoId' parameter"}), 400
+
+    try:
+        video_details = get_video_details(video_id)
+        if not video_details:
+            return jsonify({"error": "Failed to retrieve video details"}), 500
+
+        title = video_details["title"]
+        sanitized_title = "".join(c for c in title if c.isalnum() or c in (" ", "-", "_")).strip()
+        file_name = f"{sanitized_title}.mp3"
+
+        audio_url = get_audio_url(video_id)
+        if not audio_url:
+            return jsonify({"error": "Failed to retrieve audio URL"}), 500
+
+        response = requests.get(audio_url, stream=True)
+        response.raise_for_status()
+
+        file_path = os.path.join("downloads", file_name)
+        os.makedirs("downloads", exist_ok=True)
+
+        with open(file_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+
+        return send_file(file_path, as_attachment=True)
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Failed to download: {str(e)}"}), 500
 
 def get_audio_url(video_id):
     try:
@@ -222,22 +164,21 @@ def get_audio_url(video_id):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
             return info_dict["url"]
-    except Exception:
+    except Exception as e:
+        print(f"Error extracting audio URL: {e}")
         return None
-def get_duration_in_seconds(duration):
-    """Converts YouTube ISO 8601 duration format to seconds."""
-    import re
-    from datetime import timedelta
 
-    match = re.match(r'PT(\d+H)?(\d+M)?(\d+S)?', duration)
-    if not match:
-        return 0
+@app.route("/about_us", methods=["GET"])
+def about_us():
+    return jsonify({
+        "name": "Noizzify",
+        "version": "1.0",
+        "description": "An API to fetch trending music, search songs, and get audio streams from YouTube.",
+        "developer": "Lakshey Kumar :)"
+    })
 
-    hours = int(match.group(1)[:-1]) if match.group(1) else 0
-    minutes = int(match.group(2)[:-1]) if match.group(2) else 0
-    seconds = int(match.group(3)[:-1]) if match.group(3) else 0
-
-    return timedelta(hours=hours, minutes=minutes, seconds=seconds).total_seconds()
+# Ensure correct port binding for Railway
+PORT = int(os.getenv("PORT", 5000))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=PORT, debug=True)
