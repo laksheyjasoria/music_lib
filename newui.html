@@ -3,71 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Player</title>
+    <title>Youtify</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        button { margin: 10px; padding: 10px; cursor: pointer; }
-        #queue { margin-top: 20px; }
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #121212; color: white; padding: 20px; }
+        input, button { padding: 10px; font-size: 16px; margin: 5px; }
+        input { width: 60%; }
+        button { cursor: pointer; background-color: #ff0000; color: white; border: none; }
+        .video-container, .trending-container, .most-played-container { margin-top: 20px; }
+        img { width: 300px; border-radius: 10px; margin-top: 10px; }
+        .audio-link { display: inline-block; margin-top: 10px; padding: 10px; background-color: #00c853; color: white; text-decoration: none; border-radius: 5px; }
+        audio { margin-top: 20px; width: 80%; }
+        .error { color: red; margin-top: 20px; }
+        .carousel, .trending, .most-played { display: flex; overflow-x: auto; gap: 10px; padding: 10px; margin-top: 20px; scrollbar-width: none; }
+        .carousel-item, .trending-item, .most-played-item { cursor: pointer; width: 120px; flex-shrink: 0; text-align: center; background: #333; padding: 5px; border-radius: 8px; color: white; }
+        .carousel-item img, .trending-item img, .most-played-item img { width: 100px; border-radius: 8px; }
     </style>
 </head>
 <body>
+    <h1>Youtify</h1>
+    <input type="text" id="searchQuery" placeholder="Enter song name...">
+    <button onclick="searchMusic()">Search</button>
+    
+    <div id="videoResult" class="video-container"></div>
+    <audio id="audioPlayer" controls autoplay></audio>
 
-    <h1>Music Player</h1>
-    <input type="text" id="songId" placeholder="Enter YouTube Video ID">
-    <button onclick="addToQueue()">Add to Queue</button>
-    <button onclick="shuffleQueue()">Shuffle</button>
-    <button onclick="skipSong()">Skip</button>
-    <button onclick="repeatSong()">Repeat</button>
+    <h2>Related Searches</h2>
+    <div id="carouselContainer" class="carousel"></div>
+    
+    <h2>Trending Songs</h2>
+    <div id="trendingContainer" class="trending"></div>
 
-    <h2>Queue:</h2>
-    <div id="queue"></div>
+    <h2>Top 50 Most Played Songs</h2>
+    <div id="mostPlayedContainer" class="most-played"></div>
+
+    <p id="errorMessage" class="error"></p>
+    <a href="newui.html">Go to New Ui</a>
 
     <script>
-        async function addToQueue() {
-            let videoId = document.getElementById("songId").value;
-            if (!videoId) return alert("Enter a Video ID");
+        const BACKEND_URL = "https://musiclib-production.up.railway.app";
 
-            let response = await fetch("http://localhost:5000/add_to_queue", {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ videoId, title: `Song ${videoId}` })
-            });
-            let data = await response.json();
-            updateQueue(data.queue);
+        function showError(message) {
+            document.getElementById("errorMessage").textContent = "⚠️ " + message;
         }
 
-        async function shuffleQueue() {
-            let response = await fetch("http://localhost:5000/shuffle_queue", { credentials: "include" });
-            let data = await response.json();
-            updateQueue(data.queue);
+        async function fetchAudio(videoId, title, thumbnail) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`);
+                if (!response.ok) throw new Error("Failed to fetch audio");
+                const audioData = await response.json();
+                if (!audioData.audioUrl) throw new Error("No audio URL returned.");
+                
+                document.getElementById("videoResult").innerHTML = `
+                    <h2>${title}</h2>
+                    <img src="${thumbnail}" alt="${title}">
+                    <p>🎵 Now Playing: ${title}</p>
+                    <a class="audio-link" href="${audioData.audioUrl}" download="${title}.mp3">🔽 Download Audio</a>
+                `;
+                
+                const audioPlayer = document.getElementById("audioPlayer");
+                audioPlayer.src = audioData.audioUrl;
+                audioPlayer.play();
+            } catch (error) {
+                showError("Error fetching audio. Try again later.");
+            }
         }
 
-        async function skipSong() {
-            let response = await fetch("http://localhost:5000/skip", { credentials: "include" });
-            let data = await response.json();
-            updateQueue(data.queue);
+        async function searchMusic() {
+            const query = document.getElementById("searchQuery").value;
+            if (!query) {
+                showError("Please enter a search query.");
+                return;
+            }
+
+            document.getElementById("errorMessage").textContent = "";
+            document.getElementById("videoResult").innerHTML = "<p>Searching...</p>";
+            document.getElementById("carouselContainer").innerHTML = "";
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/search_music?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (data.search_results && data.search_results.length > 0) {
+                    const firstSong = data.search_results[0];
+                    fetchAudio(firstSong.videoId, firstSong.title, firstSong.thumbnail);
+
+                    // Related Searches (Carousel)
+                    const carouselContainer = document.getElementById("carouselContainer");
+                    data.search_results.slice(1, 10).forEach(song => {
+                        const item = document.createElement("div");
+                        item.className = "carousel-item";
+                        item.innerHTML = `<img src="${song.thumbnail}" alt="${song.title}"><p>${song.title}</p>`;
+                        item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
+                        carouselContainer.appendChild(item);
+                    });
+                } else {
+                    showError("No results found.");
+                }
+            } catch (error) {
+                showError("Error fetching search results.");
+            }
         }
 
-        async function repeatSong() {
-            let response = await fetch("http://localhost:5000/repeat", { credentials: "include" });
-            let data = await response.json();
-            updateQueue(data.queue);
+        async function fetchTrendingSongs() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/get_trending_music`);
+                const data = await response.json();
+
+                if (data.trending_music && data.trending_music.length > 0) {
+                    const trendingContainer = document.getElementById("trendingContainer");
+                    trendingContainer.innerHTML = ""; 
+
+                    data.trending_music.forEach(song => {
+                        const item = document.createElement("div");
+                        item.className = "trending-item";
+                        item.innerHTML = `<img src="${song.thumbnail}" alt="${song.title}"><p>${song.title}</p>`;
+                        item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
+                        trendingContainer.appendChild(item);
+                    });
+                }
+            } catch (error) {
+                showError("Error fetching trending songs.");
+            }
         }
 
-        async function fetchQueue() {
-            let response = await fetch("http://localhost:5000/get_queue", { credentials: "include" });
-            let data = await response.json();
-            updateQueue(data.queue);
+        async function fetchMostPlayedSongs() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/get_most_played_songs`);
+                const data = await response.json();
+
+                if (data.most_played_songs && data.most_played_songs.length > 0) {
+                    const mostPlayedContainer = document.getElementById("mostPlayedContainer");
+                    mostPlayedContainer.innerHTML = ""; 
+
+                    data.most_played_songs.forEach(song => {
+                        const item = document.createElement("div");
+                        item.className = "most-played-item";
+                        item.innerHTML = `<img src="${song.thumbnail}" alt="${song.title}"><p>${song.title}</p>`;
+                        item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
+                        mostPlayedContainer.appendChild(item);
+                    });
+                }
+            } catch (error) {
+                showError("Error fetching most played songs.");
+            }
         }
 
-        function updateQueue(queue) {
-            let queueDiv = document.getElementById("queue");
-            queueDiv.innerHTML = queue.map(song => `<p>${song.title} (${song.videoId})</p>`).join("");
-        }
+        // Fetch trending songs and most played songs on page load
+        window.onload = () => {
+            fetchTrendingSongs();
+            fetchMostPlayedSongs();
+        };
+        // Fetch trending songs and most played songs on page load
+window.onload = () => {
+    fetchTrendingSongs();
+    fetchMostPlayedSongs();
+    
+    // Refresh most played songs every 1 minute (60,000 ms)
+    setInterval(fetchMostPlayedSongs, 60000);
+};
 
-        fetchQueue();
     </script>
-
 </body>
 </html>
