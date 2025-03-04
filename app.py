@@ -8,7 +8,7 @@ from collections import defaultdict
 app = Flask(__name__)
 CORS(app)
 
-YOUTUBE_API_KEY = os.getenv("API_KEY")
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 if not YOUTUBE_API_KEY:
     raise ValueError("YOUTUBE_API_KEY is not set in environment variables.")
 
