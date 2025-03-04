@@ -9,6 +9,7 @@ app = Flask(__name__)
 CORS(app)
 
 YT_API_KEY = os.getenv("API_KEY")
+print(YT_API_KEY)
 if not API_KEY:
     raise ValueError("API_KEY is not set in environment variables.")
 
