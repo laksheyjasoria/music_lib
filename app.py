@@ -8,7 +8,10 @@ from collections import defaultdict
 app = Flask(__name__)
 CORS(app)
 
-YOUTUBE_API_KEY = "AIzaSyAxSg2uRGJ2eZ1nEhr_oEYeawkGXPkBulA"
+YOUTUBE_API_KEY = os.getenv("API_KEY")
+if not YOUTUBE_API_KEY:
+    raise ValueError("YOUTUBE_API_KEY is not set in environment variables.")
+
 
 song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
 
@@ -195,7 +198,7 @@ def search_music_with_audio():
 
     search_results = []
     for item in data["items"]:
-        if "shorts" in item["snippet"]["title"].lower() or "shorts" in item["snippet"]["description"].lower():
+        if "shorts" in item["snippet"]["title"].lower() or "shorts" in item["snippet"]["description"].lower() or get_duration_in_seconds(item["snippet"]["duration"]) < 60:
             continue
         
         video_id = item["id"]["videoId"]
@@ -221,6 +224,20 @@ def get_audio_url(video_id):
             return info_dict["url"]
     except Exception:
         return None
+def get_duration_in_seconds(duration):
+    """Converts YouTube ISO 8601 duration format to seconds."""
+    import re
+    from datetime import timedelta
+
+    match = re.match(r'PT(\d+H)?(\d+M)?(\d+S)?', duration)
+    if not match:
+        return 0
+
+    hours = int(match.group(1)[:-1]) if match.group(1) else 0
+    minutes = int(match.group(2)[:-1]) if match.group(2) else 0
+    seconds = int(match.group(3)[:-1]) if match.group(3) else 0
+
+    return timedelta(hours=hours, minutes=minutes, seconds=seconds).total_seconds()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
