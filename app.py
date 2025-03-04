@@ -10,7 +10,7 @@ CORS(app)
 
 API_KEY = os.getenv("API_KEY")
 print(API_KEY)
-if not YOUTUBE_API_KEY:
+if not API_KEY:
     raise ValueError("API_KEY is not set in environment variables.")
 
 song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
