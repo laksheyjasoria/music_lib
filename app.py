@@ -9,11 +9,8 @@ app = Flask(__name__)
 CORS(app)
 
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-API_KEY = os.getenv("API_KEY")
-
-# Debugging: Print to verify (Remove in production)
-print("YOUTUBE_API_KEY:", YOUTUBE_API_KEY)
-print("API_KEY:", API_KEY)
+if not YOUTUBE_API_KEY:
+    raise ValueError("YOUTUBE_API_KEY is not set in environment variables.")
 
 song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
 
