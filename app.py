@@ -8,8 +8,7 @@ from collections import defaultdict
 app = Flask(__name__)
 CORS(app)
 
-API_KEY = os.getenv("API_KEY")
-print(API_KEY)
+YT_API_KEY = os.getenv("API_KEY")
 if not API_KEY:
     raise ValueError("API_KEY is not set in environment variables.")
 
@@ -63,7 +62,7 @@ def get_details():
     return jsonify(get_video_details(video_id))
 
 def get_video_details(video_id):
-    url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet&id={video_id}&key={API_KEY}"
+    url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet&id={video_id}&key={YT_API_KEY}"
     response = requests.get(url)
     data = response.json()
 
@@ -87,7 +86,7 @@ def get_related_music():
         return jsonify({"error": "Failed to fetch video details"}), 500
 
     search_query = f"{video_details['title']} {video_details['title']}"
-    search_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=10&q={search_query}&key={API_KEY}"
+    search_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=10&q={search_query}&key={YT_API_KEY}"
     
     search_response = requests.get(search_url)
     search_data = search_response.json()
@@ -108,7 +107,7 @@ def get_related_music():
 
 @app.route("/get_trending_music", methods=["GET"])
 def get_trending_music():
-    url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&videoCategoryId=10&regionCode=IN&maxResults=20&key={API_KEY}"
+    url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&videoCategoryId=10&regionCode=IN&maxResults=30&key={YT_API_KEY}"
     response = requests.get(url)
     data = response.json()
 
@@ -189,7 +188,7 @@ def search_music_with_audio():
     if not query:
         return jsonify({"error": "Missing 'query' parameter"}), 400
 
-    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=IN&maxResults=50&q={query}&key={API_KEY}"
+    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=IN&maxResults=50&q={query}&key={YT_API_KEY}"
     response = requests.get(url)
     data = response.json()
 
