@@ -6,13 +6,19 @@
     <title>Youtify</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background-color: #121212; color: white; padding: 20px; }
-        input, button { padding: 10px; font-size: 16px; margin: 5px; }
+        input, button { padding: 10px; font-size: 16px; margin: 5px; border-radius: 5px; }
         input { width: 60%; }
-        button { cursor: pointer; background-color: #ff0000; color: white; border: none; }
-        .video-container, .trending-container, .most-played-container { margin-top: 20px; }
+        button { cursor: pointer; background-color: #ff0000; color: white; border: none; transition: 0.3s; }
+        button:hover { background-color: #cc0000; }
+        .video-container { margin-top: 20px; }
         img { width: 300px; border-radius: 10px; margin-top: 10px; }
-        .audio-link { display: inline-block; margin-top: 10px; padding: 10px; background-color: #00c853; color: white; text-decoration: none; border-radius: 5px; }
-        audio { margin-top: 20px; width: 80%; }
+        .controls { display: flex; justify-content: center; align-items: center; margin-top: 10px; gap: 10px; }
+        .volume-container { position: fixed; top: 50%; right: 10px; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; }
+        .volume-container input { transform: rotate(-90deg); width: 100px; }
+       .progress-container { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
+        .progress-bar { width: 60%; }
+        .time { font-size: 14px; }
+        .active { background-color: #ff6600 !important; }
         .error { color: red; margin-top: 20px; }
         .carousel, .trending, .most-played { display: flex; overflow-x: auto; gap: 10px; padding: 10px; margin-top: 20px; scrollbar-width: none; }
         .carousel-item, .trending-item, .most-played-item { cursor: pointer; width: 120px; flex-shrink: 0; text-align: center; background: #333; padding: 5px; border-radius: 8px; color: white; }
@@ -25,8 +31,29 @@
     <button onclick="searchMusic()">Search</button>
     
     <div id="videoResult" class="video-container"></div>
-    <audio id="audioPlayer" controls autoplay></audio>
-
+    
+  
+    
+       <div class="progress-container">
+        <span id="currentTime" class="time">0:00</span>
+        <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0">
+        <span id="totalDuration" class="time">0:00</span>
+    </div> 
+    
+      <div class="controls">
+         <button onclick="shuffleQueue()">🔀</button>
+        <button onclick="prevSong()">⏮️</button>
+        <button id="playPauseBtn" onclick="togglePlayPause()">▶️</button>
+        <button onclick="nextSong()">⏭️</button>
+       
+        <button onclick="toggleRepeat()">🔁</button>
+    </div>
+    <audio id="audioPlayer" ontimeupdate="updateProgress()" onended="nextSong()"></audio>
+    
+    <div class="volume-container" hidden>
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" onchange="updateVolume()" hidden>
+    </div>
+    
     <h2>Related Searches</h2>
     <div id="carouselContainer" class="carousel"></div>
     
@@ -37,72 +64,107 @@
     <div id="mostPlayedContainer" class="most-played"></div>
 
     <p id="errorMessage" class="error"></p>
-    <a href="newui.html">Go to New Ui</a>
-
+    
     <script>
-        const BACKEND_URL = "https://musiclib-production.up.railway.app";
+    
+     const BACKEND_URL = "https://musiclib-production.up.railway.app";
+        let queue = [];
+        let currentIndex = 0;
+        const audioPlayer = document.getElementById("audioPlayer");
+        const playPauseBtn = document.getElementById("playPauseBtn");
 
-        function showError(message) {
-            document.getElementById("errorMessage").textContent = "⚠️ " + message;
-        }
-
-        async function fetchAudio(videoId, title, thumbnail) {
-            try {
-                const response = await fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`);
-                if (!response.ok) throw new Error("Failed to fetch audio");
-                const audioData = await response.json();
-                if (!audioData.audioUrl) throw new Error("No audio URL returned.");
-                
-                document.getElementById("videoResult").innerHTML = `
-                    <h2>${title}</h2>
-                    <img src="${thumbnail}" alt="${title}">
-                    <p>🎵 Now Playing: ${title}</p>
-                    <a class="audio-link" href="${audioData.audioUrl}" download="${title}.mp3">🔽 Download Audio</a>
-                `;
-                
-                const audioPlayer = document.getElementById("audioPlayer");
-                audioPlayer.src = audioData.audioUrl;
+        function togglePlayPause() {
+            if (audioPlayer.paused) {
                 audioPlayer.play();
-            } catch (error) {
-                showError("Error fetching audio. Try again later.");
+                playPauseBtn.textContent = "⏸️";
+            } else {
+                audioPlayer.pause();
+                playPauseBtn.textContent = "▶️";
             }
         }
 
-        async function searchMusic() {
+              function updateProgress() {
+            const progressBar = document.getElementById("progressBar");
+            const currentTime = document.getElementById("currentTime");
+            const totalDuration = document.getElementById("totalDuration");
+            
+            progressBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+            currentTime.textContent = formatTime(audioPlayer.currentTime);
+            totalDuration.textContent = formatTime(audioPlayer.duration);
+        }
+        
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+        
+        document.getElementById("progressBar").addEventListener("input", function () {
+            audioPlayer.currentTime = (this.value / 100) * audioPlayer.duration;
+        });
+
+        function updateVolume() {
+            audioPlayer.volume = document.getElementById("volumeSlider").value;
+        }
+
+        function fetchAudio(videoId, title, thumbnail) {
+            fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`)
+                .then(response => response.json())
+                .then(audioData => {
+                    audioPlayer.src = audioData.audioUrl;
+                    audioPlayer.play();
+                    playPauseBtn.textContent = "⏸️";
+                    document.getElementById("videoResult").innerHTML = `
+                        <h2>${title}</h2>
+                        <img src="${thumbnail}" alt="${title}">
+                        <p>🎵 Now Playing: ${title}</p>
+                    `;
+                });
+        }
+
+        function searchMusic() {
             const query = document.getElementById("searchQuery").value;
-            if (!query) {
-                showError("Please enter a search query.");
-                return;
-            }
-
-            document.getElementById("errorMessage").textContent = "";
-            document.getElementById("videoResult").innerHTML = "<p>Searching...</p>";
-            document.getElementById("carouselContainer").innerHTML = "";
-
-            try {
-                const response = await fetch(`${BACKEND_URL}/search_music?query=${encodeURIComponent(query)}`);
-                const data = await response.json();
-
-                if (data.search_results && data.search_results.length > 0) {
-                    const firstSong = data.search_results[0];
-                    fetchAudio(firstSong.videoId, firstSong.title, firstSong.thumbnail);
-
-                    // Related Searches (Carousel)
-                    const carouselContainer = document.getElementById("carouselContainer");
-                    data.search_results.slice(1, 10).forEach(song => {
+            if (!query) return;
+            fetch(`${BACKEND_URL}/search_music?query=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    queue = data.search_results;
+                    currentIndex = 0;
+                    if (queue.length > 0) {
+                        fetchAudio(queue[0].videoId, queue[0].title, queue[0].thumbnail);
+                    
+                             const carouselContainer = document.getElementById("carouselContainer");
+                    data.search_results.slice(1).forEach(song => {
                         const item = document.createElement("div");
                         item.className = "carousel-item";
                         item.innerHTML = `<img src="${song.thumbnail}" alt="${song.title}"><p>${song.title}</p>`;
                         item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
                         carouselContainer.appendChild(item);
                     });
-                } else {
-                    showError("No results found.");
-                }
-            } catch (error) {
-                showError("Error fetching search results.");
+                    }
+                });
+        }
+
+        function prevSong() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                fetchAudio(queue[currentIndex].videoId, queue[currentIndex].title, queue[currentIndex].thumbnail);
             }
         }
+
+        function nextSong() {
+            if (currentIndex < queue.length - 1) {
+                currentIndex++;
+                fetchAudio(queue[currentIndex].videoId, queue[currentIndex].title, queue[currentIndex].thumbnail);
+            }
+        }
+        
+                function showError(message) {
+            document.getElementById("errorMessage").textContent = "⚠️ " + message;
+        }
+
+
+
 
         async function fetchTrendingSongs() {
             try {
@@ -161,7 +223,18 @@ window.onload = () => {
     // Refresh most played songs every 1 minute (60,000 ms)
     setInterval(fetchMostPlayedSongs, 60000);
 };
+        let isRepeating = false;
+        function toggleRepeat() {
+            isRepeating = !isRepeating;
+            document.querySelector("button[onclick='toggleRepeat()']").style.backgroundColor = isRepeating ? "#00cc00" : "#ff0000";
+        }
 
+        function shuffleQueue() {
+            for (let i = queue.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [queue[i], queue[j]] = [queue[j], queue[i]];
+            }
+        }
     </script>
 </body>
 </html>
