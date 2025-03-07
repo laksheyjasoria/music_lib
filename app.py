@@ -1,11 +1,14 @@
 import jiosaavn
 
-# Initialize the client
-client = jiosaavn.Sync()
+# Search for the song
+results = jiosaavn.search("Tum Hi Ho")
 
-# Get song details using a JioSaavn song URL
-song_url = "https://www.jiosaavn.com/song/tum-hi-ho/XYZ123"  # Replace with actual link
-song = client.get_song(song_url)
+# Get the first result (if available)
+if results:
+    song = results[0]
+    print(song)
+else:
+    print("Song not found!")
 
 print(song)
 print(dir(jiosaavn))
