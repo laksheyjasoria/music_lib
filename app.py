@@ -5,6 +5,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from collections import defaultdict
 from datetime import date
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -132,12 +133,23 @@ def search_music():
     return jsonify({"search_results": search_results})
 
 def parse_duration(duration):
-    import re
+    if isinstance(duration, int):  
+        return duration  # Already in seconds
+    
+    if not isinstance(duration, str):  
+        print("Invalid duration format:", duration)
+        return 0  # Default to 0 if unexpected format
+    
     match = re.match(r'PT(\d+H)?(\d+M)?(\d+S)?', duration)
-    hours = int(match.group(1)[:-1]) * 3600 if match.group(1) else 0
-    minutes = int(match.group(2)[:-1]) * 60 if match.group(2) else 0
+    if not match:
+        print("Regex did not match duration format:", duration)
+        return 0
+
+    hours = int(match.group(1)[:-1]) if match.group(1) else 0
+    minutes = int(match.group(2)[:-1]) if match.group(2) else 0
     seconds = int(match.group(3)[:-1]) if match.group(3) else 0
-    return hours + minutes + seconds
+    
+    return hours * 3600 + minutes * 60 + seconds
 
 @app.route("/", methods=["GET"])
 def about_us():
