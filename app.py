@@ -180,23 +180,26 @@ def get_video_details(video_id):
 
 
 @app.route("/jio", methods=["GET"])
-def get_jiosaavn_audio(song_url):
-     song_url = request.args.get("q")
+def get_jiosaavn_audio():
+    song_url = request.args.get("q")  # Get URL from request parameters
+    if not song_url:
+        return jsonify({"error": "No song URL provided"}), 400
+
     ydl_opts = {"quiet": True, "format": "bestaudio"}
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(song_url, download=False)
-            return {
-                "title": info.get("title"),
-                "duration": info.get("duration"),
-                "audio_url": info.get("url"),  # Direct streaming link
-                "thumbnail": info.get("thumbnail"),
-            }
+
+        return jsonify({
+            "title": info.get("title"),
+            "duration": info.get("duration"),
+            "audio_url": info.get("url"),  # Direct audio streaming link
+            "thumbnail": info.get("thumbnail"),
+        })
+    
     except Exception as e:
         print(f"Error fetching JioSaavn audio: {e}")
-        return None
-
-
+        return jsonify({"error": str(e)}), 500
 PORT = int(os.getenv("PORT", 5000))
 
 if __name__ == "__main__":
