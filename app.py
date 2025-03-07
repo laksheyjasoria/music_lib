@@ -148,6 +148,23 @@ def about_us():
         "backenddev": "Lakshey Kumar :)",
         "frontenddev": "Bharat Kumar :)"
     })
+def get_video_details(video_id):
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    
+    ydl_opts = {"quiet": True}
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+        return {
+            "title": info.get("title"),
+            "duration": info.get("duration"),
+            "thumbnail": info.get("thumbnail"),
+        }
+
+    except Exception as e:
+        print(f"Error fetching video details: {e}")
+        return None
 
 PORT = int(os.getenv("PORT", 5000))
 
