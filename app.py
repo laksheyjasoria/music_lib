@@ -178,6 +178,25 @@ def get_video_details(video_id):
         print(f"Error fetching video details: {e}")
         return None
 
+
+@app.route("/jio", methods=["GET"])
+def get_jiosaavn_audio(song_url):
+     song_url = request.args.get("q")
+    ydl_opts = {"quiet": True, "format": "bestaudio"}
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(song_url, download=False)
+            return {
+                "title": info.get("title"),
+                "duration": info.get("duration"),
+                "audio_url": info.get("url"),  # Direct streaming link
+                "thumbnail": info.get("thumbnail"),
+            }
+    except Exception as e:
+        print(f"Error fetching JioSaavn audio: {e}")
+        return None
+
+
 PORT = int(os.getenv("PORT", 5000))
 
 if __name__ == "__main__":
