@@ -6,6 +6,7 @@ from flask_cors import CORS
 from collections import defaultdict
 from datetime import date
 import re
+import jiosaavn
 
 app = Flask(__name__)
 CORS(app)
@@ -185,16 +186,16 @@ def get_jiosaavn_audio():
     if not song_url:
         return jsonify({"error": "No song URL provided"}), 400
 
-    ydl_opts = {"quiet": True, "format": "bestaudio"}
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(song_url, download=False)
+        song = jiosaavn.Song.from_url(song_url)
 
         return jsonify({
-            "title": info.get("title"),
-            "duration": info.get("duration"),
-            "audio_url": info.get("url"),  # Direct audio streaming link
-            "thumbnail": info.get("thumbnail"),
+            "title": song.name,
+            "album": song.album_name,
+            "artist": song.primary_artists,
+            "audio_url": song.download_url,  # Direct MP3 link
+            "duration": song.duration,  # In seconds
+            "thumbnail": song.image_url
         })
     
     except Exception as e:
