@@ -14,20 +14,23 @@ YT_API_KEY = os.getenv("API_KEY")
 if not YT_API_KEY:
     raise ValueError("API_KEY is not set in environment variables.")
 
-song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
+song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": "","duration":""})
 
 @app.route("/get_audio", methods=["GET"])
 def get_audio():
     video_id = request.args.get("videoId")
     if not video_id:
         return jsonify({"error": "Missing 'videoId' parameter"}), 400
+    return get_audio_method(video_id)
 
+def get_audio_method(video_id)
     if song_play_count.get(video_id, {}).get("count", 0) == 0:
         video_details = get_video_details(video_id)
         if not video_details:
             return jsonify({"error": "Failed to fetch video details"}), 500
         song_play_count[video_id]["title"] = video_details["title"]
         song_play_count[video_id]["thumbnail"] = video_details["thumbnail"]
+        song_play_count[video_id]["duration"] = video_details["duration"]
 
     song_play_count[video_id]["count"] += 1
     audio_url = get_audio_url(video_id)
@@ -39,7 +42,8 @@ def get_audio():
         "videoId": video_id,
         "title": song_play_count[video_id]["title"],
         "thumbnail": song_play_count[video_id]["thumbnail"],
-        "audioUrl": audio_url
+        "audioUrl": audio_url,
+        "duration": song_play_count[video_id]["duration"]
     })
 
 @app.route("/get_most_played_songs", methods=["GET"])
@@ -130,7 +134,7 @@ def search_music():
         video_title = item["snippet"]["title"]
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
 
-        video_details = get_video_details(video_id)
+        video_details = get_audio_method(video_id)
         if video_details and video_details["duration"] >= 60:  # ✅ Filter short videos
             search_results.append({
                 "videoId": video_id,
