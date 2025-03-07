@@ -1,11 +1,10 @@
 import os
 import requests
 import yt_dlp
-from datetime import datetime
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from collections import defaultdict
-
+from datetime import date
 
 app = Flask(__name__)
 CORS(app)
@@ -15,17 +14,18 @@ YT_API_KEY = os.getenv("API_KEY")
 if not YT_API_KEY:
     raise ValueError("API_KEY is not set in environment variables.")
 
-song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": "","duration":""})
+song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": "", "duration": ""})
 
 @app.route("/get_audio", methods=["GET"])
 def get_audio():
     video_id = request.args.get("videoId")
     if not video_id:
         return jsonify({"error": "Missing 'videoId' parameter"}), 400
-    return get_audio_method(video_id)
 
-def get_audio_method(video_id):
-    if song_play_count.get(video_id, {}).get("count", 0) == 0:
+    return get_music_details(video_id)
+
+def get_music_details(video_id):
+    if song_play_count.get(video_id, {"count": 0}).get("count", 0) == 0:
         video_details = get_video_details(video_id)
         if not video_details:
             return jsonify({"error": "Failed to fetch video details"}), 500
@@ -61,60 +61,39 @@ def get_most_played_songs():
     ]
     return jsonify({"most_played_songs": most_played_songs})
 
-@app.route("/get_details", methods=["GET"])
-def get_details():
-    video_id = request.args.get("videoId")
-    if not video_id:
-        return jsonify({"error": "Missing 'videoId' parameter"}), 400
-    return jsonify(get_video_details(video_id))
-
-def get_video_details(video_id):
-    url = f"https://www.youtube.com/watch?v={video_id}"
-    
-    ydl_opts = {"quiet": True}
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-
-        return {
-            "title": info.get("title"),
-            "thumbnail": info.get("thumbnail"),
-            "duration": info.get("duration"),  # Duration in seconds
-        }
-
-    except Exception as e:
-        print(f"Error fetching video details: {e}")
-        return None
-
-cached_trending_music = []
-last_refresh_time = None
+# Trending Music Caching
+trending_music_cache = {
+    "data": None,
+    "last_fetched": None
+}
 
 @app.route("/get_trending_music", methods=["GET"])
 def get_trending_music():
-    global cached_trending_music, last_refresh_time
+    today = date.today()
 
-    # If cache is empty or data is older than 24 hours, refresh it
-    if not cached_trending_music or (last_refresh_time and datetime.now() - last_refresh_time > timedelta(days=1)):
-        print("this time we fetch the data")
-        url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&videoCategoryId=10&regionCode=IN&maxResults=50&key={YT_API_KEY}"
-        response = requests.get(url)
-        data = response.json()
+    if trending_music_cache["data"] and trending_music_cache["last_fetched"] == today:
+        return jsonify({"trending_music": trending_music_cache["data"]})
 
-        if "items" not in data:
-            return jsonify({"error": "Failed to fetch trending music"}), 500
+    url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&videoCategoryId=10&regionCode=IN&maxResults=30&key={YT_API_KEY}"
+    response = requests.get(url)
+    data = response.json()
 
-        cached_trending_music = [
-            {
-                "videoId": item["id"],
-                "title": item["snippet"]["title"],
-                "thumbnail": item["snippet"]["thumbnails"]["high"]["url"]
-            }
-            for item in data["items"]
-        ]
-        
-        last_refresh_time = datetime.now()  # Update last refresh timestamp
+    if "items" not in data:
+        return jsonify({"error": "Failed to fetch trending music"}), 500
 
-    return jsonify({"trending_music": cached_trending_music})
+    trending_music = [
+        {
+            "videoId": item["id"],
+            "title": item["snippet"]["title"],
+            "thumbnail": item["snippet"]["thumbnails"]["high"]["url"]
+        }
+        for item in data["items"]
+    ]
+
+    trending_music_cache["data"] = trending_music
+    trending_music_cache["last_fetched"] = today
+
+    return jsonify({"trending_music": trending_music})
 
 @app.route("/search_music", methods=["GET"])
 def search_music():
@@ -135,37 +114,41 @@ def search_music():
         video_title = item["snippet"]["title"]
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
 
-        video_details = get_audio_method(video_id)
-        if video_details and video_details["duration"] >= 60:  # ✅ Filter short videos
-            search_results.append({
-                "videoId": video_id,
-                "title": video_details["title"],
-                "thumbnail": video_details["thumbnail"],
-            })
+        video_details = get_video_details(video_id)
+        if not video_details:
+            continue
 
+        duration_seconds = parse_duration(video_details["duration"])
+        if duration_seconds < 60:
+            continue
+
+        search_results.append({
+            "videoId": video_id,
+            "title": video_title,
+            "thumbnail": thumbnail,
+            "duration": video_details["duration"]
+        })
 
     return jsonify({"search_results": search_results})
 
-def get_audio_url(video_id):
-    try:
-        ydl_opts = {"format": "bestaudio/best", "noplaylist": True, "quiet": True}
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-            return info_dict["url"]
-    except Exception as e:
-        print(f"Error extracting audio URL: {e}")
-        return None
+def parse_duration(duration):
+    import re
+    match = re.match(r'PT(\d+H)?(\d+M)?(\d+S)?', duration)
+    hours = int(match.group(1)[:-1]) * 3600 if match.group(1) else 0
+    minutes = int(match.group(2)[:-1]) * 60 if match.group(2) else 0
+    seconds = int(match.group(3)[:-1]) if match.group(3) else 0
+    return hours + minutes + seconds
 
-@app.route("/about_us", methods=["GET"])
+@app.route("/", methods=["GET"])
 def about_us():
     return jsonify({
         "name": "Noizzify",
         "version": "1.0",
         "description": "An API to fetch trending music, search songs, and get audio streams from YouTube.",
-        "developer": "Lakshey Kumar :)"
+        "backenddev": "Lakshey Kumar :)",
+        "frontenddev": "Bharat Kumar :)"
     })
 
-# Ensure correct port binding for Railway
 PORT = int(os.getenv("PORT", 5000))
 
 if __name__ == "__main__":
