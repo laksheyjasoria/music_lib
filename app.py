@@ -23,7 +23,7 @@ def get_audio():
         return jsonify({"error": "Missing 'videoId' parameter"}), 400
     return get_audio_method(video_id)
 
-def get_audio_method(video_id)
+def get_audio_method(video_id):
     if song_play_count.get(video_id, {}).get("count", 0) == 0:
         video_details = get_video_details(video_id)
         if not video_details:
