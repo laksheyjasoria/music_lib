@@ -32,6 +32,24 @@ def get_audio():
 
     return get_music_details(video_id)
 
+def get_video_duration(video_id):
+    """Fetch video duration using yt-dlp without an API key"""
+    try:
+        ydl_opts = {
+            "quiet": True, 
+            "noplaylist": True, 
+            "skip_download": True  # Avoid downloading the video
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+        
+        return info.get("duration", 0)  # Duration in seconds
+    except Exception as e:
+        print(f"Error fetching video duration: {e}")
+        return None
+
+
 @app.route("/get_most_played_songs", methods=["GET"])
 def get_most_played_songs():
     sorted_songs = sorted(song_play_count.items(), key=lambda x: x[1]["count"], reverse=True)
@@ -131,12 +149,12 @@ def search_music():
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
 
         # Fetch video details (to get duration)
-        video_details = get_video_details(video_id)
+        duration = get_video_duration(video_id)
         if not video_details:
             continue
 
         # Convert duration to seconds and reject short videos
-        duration_seconds = parse_duration(video_details["duration"])
+        duration_seconds = parse_duration(duration)
         if duration_seconds < 60:
             continue  # Skip videos shorter than 60 seconds
 
