@@ -64,7 +64,7 @@ def get_trending_music():
     # Cache the response
     trending_music_cache["data"] = trending_music
     trending_music_cache["last_fetched"] = today
-
+    print("this we are fetching new found data")
     return jsonify({"trending_music": trending_music})
 
 
