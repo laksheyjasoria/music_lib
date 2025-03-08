@@ -24,6 +24,29 @@ trending_music_cache = {
     "last_fetched": None
 }
 
+song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": "","duration":""})
+
+@app.route("/get_audio", methods=["GET"])
+def get_audio():
+    video_id = request.args.get("videoId")
+    if not video_id:
+        return jsonify({"error": "Missing 'videoId' parameter"}), 400
+
+	return get_music_details(video_id)
+
+@app.route("/get_most_played_songs", methods=["GET"])
+def get_most_played_songs():
+    sorted_songs = sorted(song_play_count.items(), key=lambda x: x[1]["count"], reverse=True)
+    most_played_songs = [
+        {
+            "videoId": video_id,
+            "title": data["title"],
+            "thumbnail": data["thumbnail"],
+            "play_count": data["count"]
+        }
+        for video_id, data in sorted_songs[:50]
+    ]
+    return jsonify({"most_played_songs": most_played_songs})
 
 @app.route("/get_trending_music", methods=["GET"])
 def get_trending_music():
@@ -67,6 +90,30 @@ def get_trending_music():
     print("this we are fetching new found data")
     return jsonify({"trending_music": trending_music})
 
+def get_music_details(video_id):
+    if song_play_count.get(video_id, {}).get("count", 0) == 0:
+        video_details = get_video_details(video_id)
+        if not video_details:
+            return jsonify({"error": "Failed to fetch video details"}), 500
+        song_play_count[video_id]["title"] = video_details["title"]
+        song_play_count[video_id]["thumbnail"] = video_details["thumbnail"]
+		song_play_count[video_id]["duration"] = video_details["duration"]
+
+    song_play_count[video_id]["count"] += 1
+    audio_url = get_audio_url(video_id)
+
+    if not audio_url:
+        return jsonify({"error": "Failed to get audio URL"}), 500
+
+    return jsonify({
+        "videoId": video_id,
+        "title": song_play_count[video_id]["title"],
+        "thumbnail": song_play_count[video_id]["thumbnail"],
+        "audioUrl": audio_url
+		"duration": song_play_count[video_id]["duration"]
+    })	
+
+
 
 @app.route("/search_music", methods=["GET"])
 def search_music():
@@ -108,20 +155,20 @@ def search_music():
 
 
 def get_video_details(video_id):
-    """Fetch video details including duration"""
-    url = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id={video_id}&key={YT_API_KEY}"
-    response = requests.get(url)
-    data = response.json()
-
-    if "items" not in data or not data["items"]:
+    """Fetch video details including duration using yt-dlp"""
+    try:
+        ydl_opts = {"quiet": True, "noplaylist": True}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+        
+        return {
+            "title": info.get("title", "Unknown"),
+            "thumbnail": info.get("thumbnail", ""),
+            "duration": info.get("duration", 0)  # Duration in seconds
+        }
+    except Exception as e:
+        print(f"Error fetching video details: {e}")
         return None
-
-    item = data["items"][0]
-    return {
-        "title": item["snippet"]["title"],
-        "thumbnail": item["snippet"]["thumbnails"]["high"]["url"],
-        "duration": item["contentDetails"]["duration"]
-    }
 
 
 def parse_duration(duration):
@@ -146,6 +193,28 @@ def about_us():
         "backenddev": "Lakshey Kumar :)",
         "frontenddev": "Bharat Kumar :)"
     })
+@app.route("/get_most_played_songs", methods=["GET"])
+def get_most_played_songs():
+    sorted_songs = sorted(song_play_count.items(), key=lambda x: x[1]["count"], reverse=True)
+    most_played_songs = [
+        {
+            "videoId": video_id,
+            "title": data["title"],
+            "thumbnail": data["thumbnail"],
+            "play_count": data["count"]
+        }
+        for video_id, data in sorted_songs[:50]
+    ]
+    return jsonify({"most_played_songs": most_played_songs})
+def get_audio_url(video_id):
+    try:
+        ydl_opts = {"format": "bestaudio/best", "noplaylist": True, "quiet": True}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+            return info_dict["url"]
+    except Exception as e:
+        print(f"Error extracting audio URL: {e}")
+        return None
 
 
 # Ensure correct port binding for Railway
