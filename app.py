@@ -31,6 +31,7 @@ def get_trending_music():
 
     # If data exists and was fetched today, return cached data
     if trending_music_cache["data"] and trending_music_cache["last_fetched"] == today:
+        print("this we are fetching previously found data")
         return jsonify({"trending_music": trending_music_cache["data"]})
 
     # Otherwise, fetch fresh data from YouTube API
