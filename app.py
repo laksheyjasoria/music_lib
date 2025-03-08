@@ -154,7 +154,7 @@ def search_music():
             continue
 
         # Convert duration to seconds and reject short videos
-        duration_seconds = parse_duration(duration)
+        duration_seconds = duration
         print("asdn :"+duration_seconds)
         if duration_seconds < 60:
             continue  # Skip videos shorter than 60 seconds
