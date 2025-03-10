@@ -6,9 +6,32 @@ from flask_cors import CORS
 from collections import defaultdict
 from datetime import date
 import re
+import ffmpeg
+from io import BytesIO
 
 app = Flask(__name__)
 CORS(app)
+
+
+def get_audio_duration(url: str) -> float:
+    try:
+        # Stream the audio file from the URL
+        response = requests.get(url, stream=True)
+ 
+        if response.status_code == 200:
+            # Use FFmpeg to probe the metadata from the audio stream
+            probe = ffmpeg.probe(url, v='error', select_streams='a', show_entries='stream=duration')
+            
+            # Extract the duration from the probe result
+            duration = float(probe['streams'][0]['duration'])
+            return duration
+        else:
+            print("Error fetching the audio file.")
+            return None
+ 
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
 # Load YouTube API Key
 YT_API_KEY = os.getenv("API_KEY")
@@ -149,7 +172,7 @@ def search_music():
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
 
         # Fetch video details (to get duration)
-        duration = get_video_duration(video_id)
+        duration = get_audio_duration(get_audio_url(video_id))
         if not duration:
             continue
 
