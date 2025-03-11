@@ -167,6 +167,25 @@ def get_audio_url(video_id):
     except Exception as e:
         print(f"Error extracting audio URL: {e}")
         return None
+def get_audio_duration(url):
+    try:
+        # Download the audio file
+        response = requests.get(url, stream=True)
+        response.raise_for_status()  # Raise error if download fails
+        
+        # Read the audio file into memory
+        audio = AudioSegment.from_file(BytesIO(response.content))
+        
+        # Get duration in seconds
+        duration = len(audio) / 1000  # pydub gives duration in milliseconds
+        
+        return duration  # Returns duration in seconds
+
+    except Exception as e:
+        print("Error:", e)
+        return None
+
+
 
 @app.route("/", methods=["GET"])
 def about_us():
