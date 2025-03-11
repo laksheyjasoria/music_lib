@@ -106,6 +106,20 @@ def get_audio_url(video_id):
     except Exception as e:
         print(f"Error extracting audio URL: {e}")
         return None
+@app.route("/get_most_played_songs", methods=["GET"])
+def get_most_played_songs():
+    sorted_songs = sorted(song_play_count.items(), key=lambda x: x[1]["count"], reverse=True)
+    most_played_songs = [
+        {
+            "videoId": video_id,
+            "title": data["title"],
+            "thumbnail": data["thumbnail"],
+            "play_count": data["count"],
+        }
+        for video_id, data in sorted_songs[:50]
+    ]
+    return jsonify({"most_played_songs": most_played_songs})
+
 
 # Ensure correct port binding for Railway
 PORT = int(os.getenv("PORT", 5000))
