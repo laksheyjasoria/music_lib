@@ -18,6 +18,28 @@ if not YT_API_KEY:
 
 song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
 
+def iso8601_to_seconds(duration):
+    match = re.match(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', duration)
+    if not match:
+        return 0
+    hours = int(match.group(1)) if match.group(1) else 0
+    minutes = int(match.group(2)) if match.group(2) else 0
+    seconds = int(match.group(3)) if match.group(3) else 0
+    return hours * 3600 + minutes * 60 + seconds
+
+def get_video_durations(video_ids):
+    if not video_ids:
+        return []
+
+    video_ids_str = ",".join(video_ids)
+    details_url = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id={video_ids_str}&key={YT_API_KEY}"
+    details_response = requests.get(details_url).json()
+
+    return [
+        iso8601_to_seconds(item["contentDetails"]["duration"])
+        for item in details_response.get("items", [])
+    ]
+
 # Cache for trending music
 cached_trending_music = []
 last_trending_fetch = None  # Track last fetch time
@@ -42,30 +64,37 @@ def search_music():
     if not query:
         return jsonify({"error": "Missing 'query' parameter"}), 400
 
-    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=IN&maxResults=50&q={query}&key={YT_API_KEY}"
-    response = requests.get(url)
-    data = response.json()
+    # Step 1: Search for videos
+    search_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=IN&maxResults=50&q={query}&key={YT_API_KEY}"
+    search_response = requests.get(search_url).json()
 
-    if "items" not in data:
+    if "items" not in search_response:
         return jsonify({"error": "Failed to fetch search results"}), 500
 
+    # Extract video IDs
+    video_ids = [item["id"]["videoId"] for item in search_response.get("items", []) if "videoId" in item["id"]]
+
+    if not video_ids:
+        return jsonify({"search_results": []})  # Return empty if no videos found
+
+    # Step 2: Fetch video durations
+    details_url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id={','.join(video_ids)}&key={YT_API_KEY}"
+    details_response = requests.get(details_url).json()
+
     search_results = []
-    for item in data["items"]:
-        video_id = item["id"]["videoId"]
+    for item in details_response.get("items", []):
+        video_id = item["id"]
         video_title = item["snippet"]["title"]
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
+        duration = iso8601_to_seconds(item["contentDetails"]["duration"])
 
-        # Fetch the audio URL and check duration
-        audio_url = get_audio_url(video_id)
-        if audio_url:
-            duration = get_audio_duration(audio_url)
-            if duration and duration > 60:  # Only include if duration > 60 seconds
-                search_results.append({
-                    "videoId": video_id,
-                    "title": video_title,
-                    "thumbnail": thumbnail,
-                    "duration": duration
-                })
+        if duration >= 60:  # Only include if duration > 60 seconds
+            search_results.append({
+                "videoId": video_id,
+                "title": video_title,
+                "thumbnail": thumbnail,
+                "duration": duration
+            })
 
     return jsonify({"search_results": search_results})
 
