@@ -90,7 +90,7 @@ def search_music():
         video_id = item["id"]
         video_title = item["snippet"]["title"]
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
-        duration = iso8601_to_seconds(item["contentDetails"]["duration"])
+        duration = utils.iso8601_to_seconds(item["contentDetails"]["duration"])
 
         if duration >= 60 and video_id not in [res["videoId"] for res in unique_search_results]:  # Only include unique entries
             result = {
