@@ -51,6 +51,32 @@ def get_audio_duration(url):
         print("Error fetching duration:", e)
         return None
 
+@app.route("/get_audio", methods=["GET"])
+def get_audio():
+    video_id = request.args.get("videoId")
+    if not video_id:
+        return jsonify({"error": "Missing 'videoId' parameter"}), 400
+
+    if song_play_count[video_id]["count"] == 0:
+        video_details = get_video_details(video_id)
+        if video_details:
+            song_play_count[video_id].update(video_details)
+
+    song_play_count[video_id]["count"] += 1
+    audio_url = get_audio_url(video_id)
+
+    if not audio_url:
+        return jsonify({"error": "Failed to get audio URL"}), 500
+
+    return jsonify(
+        {
+            "videoId": video_id,
+            "title": song_play_count[video_id]["title"],
+            "thumbnail": song_play_count[video_id]["thumbnail"],
+            "audioUrl": audio_url,
+        }
+    )
+
 @app.route("/search_music", methods=["GET"])
 def search_music():
     """Searches for YouTube music videos and returns results with duration > 60s."""
