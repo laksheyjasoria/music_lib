@@ -46,7 +46,7 @@ def get_audio():
         })
     
     song_play_count[video_id]["count"] += 1
-    audio_url = get_audio_url(video_id)
+    audio_url = audio.get_audio_url(video_id)
 
     if not audio_url:
         return jsonify({"error": "Failed to get audio URL"}), 500
