@@ -174,8 +174,8 @@ def about_us():
         "name": "Noizzify",
         "version": "1.0",
         "description": "An API to fetch trending music, search songs, and get audio streams from YouTube.",
-        "backenddev": "Lakshey Kumar :)"
-		"frontenddev": "Bharat Kumar :)"
+        "backenddev": "Lakshey Kumar :)",
+	"frontenddev": "Bharat Kumar :)"
     })
 
 # Ensure correct port binding for Railway
