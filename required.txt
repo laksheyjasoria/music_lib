@@ -6,4 +6,5 @@ requests
 ffmpeg
 pydantic<2
 jiosaavn
-
+pydub 
+mutagen
