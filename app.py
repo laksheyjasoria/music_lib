@@ -21,35 +21,14 @@ if not YT_API_KEY:
 
 song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
 
-def get_video_durations(video_ids):
-    if not video_ids:
-        return []
+# Global list to store unique search results
+unique_search_results = []
 
-    video_ids_str = ",".join(video_ids)
-    details_url = f"https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id={video_ids_str}&key={YT_API_KEY}"
-    details_response = requests.get(details_url).json()
-
-    return [
-        iso8601_to_seconds(item["contentDetails"]["duration"])
-        for item in details_response.get("items", [])
-    ]
 
 # Cache for trending music
 cached_trending_music = []
 last_trending_fetch = None  # Track last fetch time
 
-def get_audio_duration(url):
-    """Downloads the audio file and returns its duration in seconds."""
-    try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()  # Raise error if download fails
-        
-        audio = AudioSegment.from_file(BytesIO(response.content))
-        return len(audio) / 1000  # Convert milliseconds to seconds
-
-    except Exception as e:
-        print("Error fetching duration:", e)
-        return None
 
 @app.route("/get_audio", methods=["GET"])
 def get_audio():
@@ -57,11 +36,15 @@ def get_audio():
     if not video_id:
         return jsonify({"error": "Missing 'videoId' parameter"}), 400
 
-    if song_play_count[video_id]["count"] == 0:
-        video_details = get_video_details(video_id)
-        if video_details:
-            song_play_count[video_id].update(video_details)
+    # Find the video details in the search_results list
+    video_details = next((video for video in unique_search_results if video["videoId"] == video_id), None)
 
+    if video_details:
+        song_play_count[video_id].update({
+            "title": video_details["title"],
+            "thumbnail": video_details["thumbnail"]
+        })
+    
     song_play_count[video_id]["count"] += 1
     audio_url = get_audio_url(video_id)
 
@@ -76,6 +59,7 @@ def get_audio():
             "audioUrl": audio_url,
         }
     )
+
 
 @app.route("/search_music", methods=["GET"])
 def search_music():
@@ -108,13 +92,15 @@ def search_music():
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
         duration = iso8601_to_seconds(item["contentDetails"]["duration"])
 
-        if duration >= 60:  # Only include if duration > 60 seconds
-            search_results.append({
+        if duration >= 60 and video_id not in [res["videoId"] for res in unique_search_results]:  # Only include unique entries
+            result = {
                 "videoId": video_id,
                 "title": video_title,
                 "thumbnail": thumbnail,
                 "duration": duration
-            })
+            }
+            search_results.append(result)
+            unique_search_results.append(result)  # Add to global unique list
 
     return jsonify({"search_results": search_results})
 
@@ -145,7 +131,6 @@ def get_trending_music():
 
     return jsonify({"trending_music": cached_trending_music})
 
-
 @app.route("/get_most_played_songs", methods=["GET"])
 def get_most_played_songs():
     sorted_songs = sorted(song_play_count.items(), key=lambda x: x[1]["count"], reverse=True)
@@ -159,7 +144,6 @@ def get_most_played_songs():
         for video_id, data in sorted_songs[:50]
     ]
     return jsonify({"most_played_songs": most_played_songs})
-
 
 # Ensure correct port binding for Railway
 PORT = int(os.getenv("PORT", 5000))
