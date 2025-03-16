@@ -270,6 +270,37 @@ function shuffleQueue() {
     saveQueue(queue);
 }
 
+document.addEventListener("keydown", (event) => {
+    switch (event.code) {
+        case "Space": // Play/Pause on Spacebar
+            event.preventDefault(); // Prevent scrolling
+            togglePlayPause();
+            break;
+        case "ArrowRight": // Next track
+        case "MediaTrackNext":
+            nextSong();
+            break;
+        case "ArrowLeft": // Previous track
+        case "MediaTrackPrevious":
+            prevSong();
+            break;
+        case "MediaPlayPause":
+            togglePlayPause();
+            break;
+        case "MediaStop":
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            break;
+    }
+});
+ 
+// Chrome Media Session API Integration
+if ("mediaSession" in navigator) {
+navigator.mediaSession.setActionHandler("play", () => audioPlayer.play());
+    navigator.mediaSession.setActionHandler("pause", () => audioPlayer.pause());
+    navigator.mediaSession.setActionHandler("previoustrack", prevSong);
+    navigator.mediaSession.setActionHandler("nexttrack", nextSong);
+}
     </script>
 </body>
 </html>
