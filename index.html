@@ -125,9 +125,10 @@ function fetchAudio(videoId, title, thumbnail) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: title,
                     artist: "Unknown Artist", // You can modify this if you have artist data
-                    artwork: [
-                        { src: thumbnail, sizes: "512x512", type: "image/png" }
-                    ]
+                     artwork: [
+        { src: thumbnail, sizes: "1024x1024", type: "image/png" }, // Large size
+   
+    ]
                 });
 
                 // Handle media control actions
