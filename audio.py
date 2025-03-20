@@ -2,7 +2,7 @@ import yt_dlp
 import requests
 
 import youtube_dl
-
+from pytube import YouTube
 # def get_audio_url(video_id):
 #     """Fetches the best audio URL for a given YouTube video ID."""
 #     try:
@@ -25,17 +25,25 @@ import youtube_dl
 #         info = ydl.extract_info(url, download=False)
 #         return info.get('url', None)
 
+# def get_audio_url(video_id: str):
+#     url = f"https://www.youtube.com/watch?v={video_id}"
+#     ydl_opts = {
+#         'format': 'bestaudio',
+#         'cookies-from-browser': 'chrome',  # Fetch cookies automatically
+#         'nocheckcertificate': True
+#     }
+
+#     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+#         info = ydl.extract_info(url, download=False)
+#         return info.get('url', None)
+
 def get_audio_url(video_id: str):
     url = f"https://www.youtube.com/watch?v={video_id}"
-    ydl_opts = {
-        'format': 'bestaudio',
-        'cookies-from-browser': 'chrome',  # Fetch cookies automatically
-        'nocheckcertificate': True
-    }
+    yt = YouTube(url)
+    audio_stream = yt.streams.filter(only_audio=True).first()
+    return audio_stream.url if audio_stream else None
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        return info.get('url', None)
+
 def get_video_durations_by_ids(video_ids):
     if not video_ids:
         return []
