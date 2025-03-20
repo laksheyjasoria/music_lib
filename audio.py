@@ -14,13 +14,16 @@ import youtube_dl
 #         print(f"Error extracting audio URL: {e}")
 #         return None
 
-def get_audio_url(video_id):
+def get_audio_url(video_id: str):
     url = f"https://www.youtube.com/watch?v={video_id}"
-    ydl_opts = {'format': 'bestaudio'}
+    ydl_opts = {
+        'format': 'bestaudio',
+        'nocheckcertificate': True,  # Disable SSL certificate check
+    }
 
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=False)
-        return info['url']
+        return info.get('url', None)
 
 def get_video_durations_by_ids(video_ids):
     if not video_ids:
