@@ -8,3 +8,4 @@ pydantic<2
 jiosaavn
 pydub 
 mutagen
+youtube_dl
