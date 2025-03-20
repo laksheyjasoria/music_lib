@@ -1,6 +1,8 @@
 import yt_dlp
 import requests
 
+import youtube_dl
+
 # def get_audio_url(video_id):
 #     """Fetches the best audio URL for a given YouTube video ID."""
 #     try:
