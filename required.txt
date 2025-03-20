@@ -9,3 +9,5 @@ jiosaavn
 pydub 
 mutagen
 youtube_dl
+pytube
+
