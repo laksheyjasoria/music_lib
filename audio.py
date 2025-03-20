@@ -39,7 +39,7 @@ from pytube import YouTube
 
 def get_audio_url(video_id: str):
     url = f"https://www.youtube.com/watch?v={video_id}"
-    yt = YouTube(url)
+    yt = YouTube(url, use_oauth=True, allow_oauth_cache=True)
     audio_stream = yt.streams.filter(only_audio=True).first()
     return audio_stream.url if audio_stream else None
 
