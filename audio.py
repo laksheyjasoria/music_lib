@@ -37,11 +37,32 @@ from pytube import YouTube
 #         info = ydl.extract_info(url, download=False)
 #         return info.get('url', None)
 
-def get_audio_url(video_id: str):
-    url = f"https://www.youtube.com/watch?v={video_id}"
-    yt = YouTube(url, use_oauth=True, allow_oauth_cache=True)
-    audio_stream = yt.streams.filter(only_audio=True).first()
-    return audio_stream.url if audio_stream else None
+# 
+
+def get_audio_url(video_id):
+    """
+    Fetches the best audio stream URL for a given YouTube video ID.
+
+    Args:
+        video_id (str): The ID of the YouTube video.
+
+    Returns:
+        str or None: The direct URL to the best audio stream, or None if an error occurs.
+    """
+    try:
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "noplaylist": True,
+            "quiet": True,
+            "skip_download": True
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+            return info.get("url")
+    except Exception as e:
+        print(f"[ERROR] Failed to extract audio URL for video {video_id}: {e}")
+        return None
+
 
 
 def get_video_durations_by_ids(video_ids):
