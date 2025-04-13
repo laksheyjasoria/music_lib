@@ -10,4 +10,5 @@ pydub
 mutagen
 youtube_dl
 pytube
+spacy
 
