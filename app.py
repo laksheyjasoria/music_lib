@@ -10,6 +10,7 @@ from io import BytesIO
 import re
 import audio
 import utils
+from itertools import chain
 
 app = Flask(__name__)
 CORS(app)
@@ -38,10 +39,7 @@ def get_audio():
 
     # Find the video details in the search_results list
     # video_details = next((video for video in unique_search_results if video["videoId"] == video_id), None)
-    video_details = next(
-        (video for video in unique_search_results + cached_trending_music if video["videoId"] == video_id),
-        None
-        )
+    video_details = next((video for video in chain(unique_search_results, cached_trending_music) if video.get("videoId") == video_id),None)
 
     if video_details:
         song_play_count[video_id].update({
