@@ -291,7 +291,7 @@ window.onload = () => {
     fetchMostPlayedSongs();
 
     // Refresh most played songs every 1 minute (60,000 ms)
-    setInterval(fetchMostPlayedSongs, 1000);
+    setInterval(fetchMostPlayedSongs, 30000);
 
     // Restore session storage queue if available
     const queue = getQueue();
