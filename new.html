@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="logonew.png">
+    <link rel="icon" type="image/png" href="logo.png">
     <title>Nozzify</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; background-color: #121212; color: white; padding: 20px; }
@@ -240,14 +240,7 @@ async function fetchTrendingSongs() {
                 const item = document.createElement("div");
                 item.className = "trending-item";
                 item.innerHTML = `<img src="${song.thumbnail}" alt="${song.title}"><p>${song.title}</p>`;
-                // item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
-                item.onclick = () => {
-    const newQueue = [song]; // Create a queue with the clicked song
-    saveQueue(newQueue); // Update sessionStorage
-    sessionStorage.setItem("currentIndex", 0);
-    fetchAudio(song.videoId, song.title, song.thumbnail);
-    refreshRelatedSearches(newQueue); // Update related carousel
-};
+                item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
                 trendingContainer.appendChild(item);
             });
         }
@@ -269,14 +262,7 @@ async function fetchMostPlayedSongs() {
                 const item = document.createElement("div");
                 item.className = "most-played-item";
                 item.innerHTML = `<img src="${song.thumbnail}" alt="${song.title}"><p>${song.title}</p>`;
-                // item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
-                item.onclick = () => {
-    const newQueue = [song]; // Create a queue with the clicked song
-    saveQueue(newQueue);
-    sessionStorage.setItem("currentIndex", 0);
-    fetchAudio(song.videoId, song.title, song.thumbnail);
-    refreshRelatedSearches(newQueue);
-};
+                item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
                 mostPlayedContainer.appendChild(item);
             });
         }
