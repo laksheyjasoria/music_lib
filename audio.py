@@ -54,7 +54,7 @@ def get_audio_url(video_id):
             "format": "bestaudio/best",
             "noplaylist": True,
             "quiet": True,
-            "skip_download": True
+            "skip_download": True,
             "cookiefile": "cookies.txt"
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
