@@ -52,7 +52,7 @@ def get_audio_url(video_id):
     try:
         ydl_opts = {
             "format": "bestaudio/best",
-            "noplaylist": True,
+            # "noplaylist": True,
             "quiet": True,
             "skip_download": True
         }
