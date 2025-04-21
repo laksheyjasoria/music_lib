@@ -9,6 +9,7 @@ from pydub import AudioSegment
 from io import BytesIO
 import re
 import audio
+import audioV2
 import utils
 from itertools import chain
 
