@@ -70,7 +70,7 @@ def get_audio_url(video_id: str) -> Optional[str]:
         "noplaylist": True,
         "quiet": True,
         "skip_download": True,
-        "cookiefile": "cookies.txt",
+        # "cookiefile": "cookies.txt",
     }
 
     try:
