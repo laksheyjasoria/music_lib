@@ -105,11 +105,11 @@ def get_audio_url(video_id: str) -> Optional[str]:
     return None
 
 
-if __name__ == "__main__":
-    # quick test
-    vid = "o9mivPpQlSA"
-    audio_url = get_audio_url(vid)
-    if audio_url:
-        print("🎧 Audio URL:", audio_url)
-    else:
-        print("❌ Could not fetch audio URL for", vid)
+# if __name__ == "__main__":
+#     # quick test
+#     vid = "o9mivPpQlSA"
+#     audio_url = get_audio_url(vid)
+#     if audio_url:
+#         print("🎧 Audio URL:", audio_url)
+#     else:
+#         print("❌ Could not fetch audio URL for", vid)
