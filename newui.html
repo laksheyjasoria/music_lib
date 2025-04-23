@@ -1,306 +1,663 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="logo.png">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="logonew.png" />
     <title>Nozzify</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background-color: #121212; color: white; padding: 20px; }
-        input, button { padding: 10px; font-size: 16px; margin: 5px; border-radius: 5px; }
-        input { width: 60%; }
-        button { cursor: pointer; background-color: #ff0000; color: white; border: none; transition: 0.3s; }
-        button:hover { background-color: #cc0000; }
-        .video-container { margin-top: 20px; }
-        img { width: 300px; border-radius: 10px; margin-top: 10px; }
-        .controls { display: flex; justify-content: center; align-items: center; margin-top: 10px; gap: 10px; }
-        .volume-container { position: fixed; top: 50%; right: 10px; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; }
-        .volume-container input { transform: rotate(-90deg); width: 100px; }
-       .progress-container { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
-        .progress-bar { width: 60%; }
-        .time { font-size: 14px; }
-        .active { background-color: #ff6600 !important; }
-        .error { color: red; margin-top: 20px; }
-        .carousel, .trending, .most-played { display: flex; overflow-x: auto; gap: 10px; padding: 10px; margin-top: 20px; scrollbar-width: none; }
-        .carousel-item, .trending-item, .most-played-item { cursor: pointer; width: 120px; flex-shrink: 0; text-align: center; background: #333; padding: 5px; border-radius: 8px; color: white; }
-        .carousel-item img, .trending-item img, .most-played-item img { width: 100px; border-radius: 8px; }
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background-color: #121212;
+        color: white;
+        padding: 20px;
+      }
+
+      input,
+      button {
+        padding: 10px;
+        font-size: 16px;
+        margin: 5px;
+        border-radius: 5px;
+      }
+
+      input {
+        width: 60%;
+      }
+
+      button {
+        cursor: pointer;
+        background-color: #ff0000;
+        color: white;
+        border: none;
+        transition: 0.3s;
+      }
+
+      button:hover {
+        background-color: #cc0000;
+      }
+
+      .video-container {
+        margin-top: 20px;
+      }
+
+      img {
+        width: 300px;
+        border-radius: 10px;
+        margin-top: 10px;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 10px;
+        gap: 10px;
+      }
+
+      .progress-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .progress-bar {
+        width: 60%;
+      }
+
+      .time {
+        font-size: 14px;
+      }
+
+      .error {
+        color: red;
+        margin-top: 20px;
+      }
+
+      .carousel,
+      .trending,
+      .most-played,
+      .favorites-list {
+        display: flex;
+        overflow-x: auto;
+        gap: 10px;
+        padding: 10px;
+        margin-top: 20px;
+        scrollbar-width: none;
+      }
+
+      .carousel-item,
+      .trending-item,
+      .most-played-item,
+      .favorite-item {
+        cursor: pointer;
+        width: 120px;
+        flex-shrink: 0;
+        text-align: center;
+        background: #333;
+        padding: 5px;
+        border-radius: 8px;
+        color: white;
+      }
+
+      .carousel-item img,
+      .trending-item img,
+      .most-played-item img,
+      .favorite-item img {
+        width: 100px;
+        border-radius: 8px;
+      }
+
+      /* Heart Button */
+      .favorite-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 10px;
+      }
+
+      .heart-icon {
+        width: 32px;
+        height: 32px;
+        fill: transparent;
+        stroke: #ff0000;
+        stroke-width: 2px;
+        transition: all 0.3s;
+      }
+
+      .heart-icon.favorited {
+        fill: #ff0000;
+        stroke: #ff0000;
+        filter: drop-shadow(0 0 2px #ff0000);
+      }
+
+      /* Sleep Timer Styles */
+      .sleep-timer-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #ff4444;
+        padding: 10px 20px;
+        border-radius: 25px;
+        cursor: pointer;
+        z-index: 1000;
+      }
+
+      .timer-popup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #333;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        z-index: 1001;
+        color: white;
+      }
+
+      .time-selector {
+        display: flex;
+        gap: 20px;
+        height: 200px;
+        overflow: hidden;
+      }
+
+      .time-column {
+        flex: 1;
+        overflow-y: auto;
+        scroll-snap-type: y mandatory;
+        height: 100%;
+      }
+
+      .time-item {
+        scroll-snap-align: center;
+        padding: 12px 0;
+        text-align: center;
+        font-size: 18px;
+        color: #888;
+        transition: all 0.2s;
+      }
+
+      .time-item.selected {
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+      }
+
+      .time-column::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Favorites Section */
+      .favorites-section {
+        display: none;
+        margin-top: 20px;
+      }
+
+      .favorites-toggle {
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        background: #ff4444;
+        padding: 10px 20px;
+        border-radius: 25px;
+        cursor: pointer;
+        z-index: 1000;
+      }
+
+      /* Notification */
+      .notification {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ff4444;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        display: none;
+        z-index: 1002;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Nozzify</h1>
-    <input type="text" id="searchQuery" placeholder="Enter song name...">
+    <input type="text" id="searchQuery" placeholder="Enter song name..." />
     <button onclick="searchMusic()">Search</button>
-    
     <div id="videoResult" class="video-container"></div>
-    
-  
-    
-       <div class="progress-container">
-        <span id="currentTime" class="time">0:00</span>
-        <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0">
-        <span id="totalDuration" class="time">0:00</span>
-    </div> 
-    
-      <div class="controls">
-         <button onclick="shuffleQueue()">🔀</button>
-        <button onclick="prevSong()">⏮️</button>
-        <button id="playPauseBtn" onclick="togglePlayPause()">▶️</button>
-        <button onclick="nextSong()">⏭️</button>
-       
-        <button onclick="toggleRepeat()">🔁</button>
+    <div class="progress-container">
+      <span id="currentTime" class="time">0:00</span>
+      <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" />
+      <span id="totalDuration" class="time">0:00</span>
+      <button class="favorite-btn" onclick="toggleFavorite()">
+        <svg class="heart-icon" viewBox="0 0 24 24">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+      </button>
+    </div>
+    <div class="controls">
+      <button onclick="shuffleQueue()">🔀</button>
+      <button onclick="prevSong()">⏮️</button>
+      <button id="playPauseBtn" onclick="togglePlayPause()">▶️</button>
+      <button onclick="nextSong()">⏭️</button>
+      <button onclick="toggleRepeat()">🔁</button>
+    </div>
+    <!-- Sleep Timer -->
+    <div class="sleep-timer-btn" onclick="showTimerPopup()" title="Sleep Timer">⏱</div>
+    <div class="timer-popup" id="timerPopup">
+      <h3>Set Sleep Timer</h3>
+      <div class="time-selector">
+        <div class="time-column" id="hoursColumn">
+          <div class="time-item">0h</div>
+          <div class="time-item">1h</div>
+          <div class="time-item">2h</div>
+          <div class="time-item">3h</div>
+          <div class="time-item">4h</div>
+            <div class="time-item">5h</div>
+            <div class="time-item">6h</div>
+        </div>
+        <div class="time-column" id="minutesColumn">
+          <div class="time-item">0m</div>
+            <div class="time-item">1m</div>
+            <div class="time-item">2m</div>
+            <div class="time-item">3m</div>
+            <div class="time-item">4m</div>
+            <div class="time-item">5m</div>
+            <div class="time-item">6m</div>
+            <div class="time-item">7m</div>
+            <div class="time-item">8m</div>>
+            <div class="time-item">9m</div>>
+            <div class="time-item">10m</div>
+            <div class="time-item">11m</div>
+            <div class="time-item">12m</div>
+            <div class="time-item">13m</div>
+            <div class="time-item">14m</div>
+            <div class="time-item">15m</div>
+            <div class="time-item">16m</div>
+            <div class="time-item">17m</div>
+            <div class="time-item">18m</div>
+            <div class="time-item">19m</div>
+            <div class="time-item">20m</div>
+            <div class="time-item">21m</div>
+            <div class="time-item">22m</div>
+            <div class="time-item">23m</div>
+          <div class="time-item">24m</div>>
+          <div class="time-item">25m</div>>
+          <div class="time-item">26m</div>>
+          <div class="time-item">27m</div>>
+          <div class="time-item">28m</div>>
+          <div class="time-item">29m</div>>
+          <div class="time-item">30m</div>>
+          <div class="time-item">31m</div>>
+          <div class="time-item">32m</div>>
+          <div class="time-item">33m</div>>
+          <div class="time-item">34m</div>
+          <div class="time-item">35m</div>
+          <div class="time-item">36m</div>
+          <div class="time-item">37m</div>
+          <div class="time-item">38m</div>
+          <div class="time-item">39m</div>
+          <div class="time-item">40m</div>
+          <div class="time-item">41m</div>
+          <div class="time-item">42m</div>
+          <div class="time-item">23m</div>
+          <div class="time-item">44m</div>
+          <div class="time-item">45m</div>
+          <div class="time-item">46m</div>
+          <div class="time-item">47m</div>
+          <div class="time-item">48m</div>
+          <div class="time-item">49m</div>
+          <div class="time-item">50m</div>
+          <div class="time-item">51m</div>
+          <div class="time-item">52m</div>
+          <div class="time-item">53m</div>
+          <div class="time-item">54m</div>
+          <div class="time-item">55m</div>
+          <div class="time-item">56m</div>
+          <div class="time-item">57m</div>
+          <div class="time-item">58m</div>
+          <div class="time-item">59m</div>
+        </div>
+      </div>
+      <div style="margin-top: 20px;">
+        <button onclick="setSleepTimer()">Apply</button>
+        <button onclick="resetSleepTimer()">Reset</button>
+        <button onclick="hideTimerPopup()">Cancel</button>
+      </div>
+    </div>
+    <!-- Favorites Section -->
+    <button class="favorites-toggle" id="favoritesToggleBtn" onclick="toggleFavorites()">❤️ Show Favorites</button>
+    <div class="favorites-section" id="favoritesSection">
+      <h2>Your Favorite Songs</h2>
+      <div id="favoritesList" class="favorites-list"></div>
     </div>
     <audio id="audioPlayer" ontimeupdate="updateProgress()" onended="nextSong()"></audio>
-    
-    <div class="volume-container" hidden>
-        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" onchange="updateVolume()" hidden>
-    </div>
-    
     <h2>Related Searches</h2>
     <div id="carouselContainer" class="carousel"></div>
-    
     <h2>Trending Songs</h2>
     <div id="trendingContainer" class="trending"></div>
-
     <h2>Top 50 Most Played Songs</h2>
     <div id="mostPlayedContainer" class="most-played"></div>
-
     <p id="errorMessage" class="error"></p>
-    
+    <div class="notification" id="notification"></div>
     <script>
-    
-  const BACKEND_URL = "https://musiclib-production.up.railway.app";
-const audioPlayer = document.getElementById("audioPlayer");
-const playPauseBtn = document.getElementById("playPauseBtn");
+      const BACKEND_URL = "https://musiclib-production.up.railway.app";
+      const audioPlayer = document.getElementById("audioPlayer");
+      const playPauseBtn = document.getElementById("playPauseBtn");
+      const favToggleBtn = document.getElementById("favoritesToggleBtn");
+      let isRepeating = false,
+        sleepTimer = null;
+      let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+      let selectedHours = 0,
+        selectedMinutes = 0;
+      let currentSong = null;
 
-function togglePlayPause() {
-    if (audioPlayer.paused) {
-        audioPlayer.play();
-        playPauseBtn.textContent = "⏸️";
-    } else {
-        audioPlayer.pause();
-        playPauseBtn.textContent = "▶️";
-    }
-}
-
-function updateProgress() {
-    const progressBar = document.getElementById("progressBar");
-    const currentTime = document.getElementById("currentTime");
-    const totalDuration = document.getElementById("totalDuration");
-
-    progressBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-    currentTime.textContent = formatTime(audioPlayer.currentTime);
-    totalDuration.textContent = formatTime(audioPlayer.duration);
-}
-
-function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-}
-
-document.getElementById("progressBar").addEventListener("input", function () {
-    audioPlayer.currentTime = (this.value / 100) * audioPlayer.duration;
-});
-
-function updateVolume() {
-    audioPlayer.volume = document.getElementById("volumeSlider").value;
-}
-
-function fetchAudio(videoId, title, thumbnail) {
-    fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`)
-        .then(response => response.json())
-        .then(audioData => {
-            audioPlayer.src = audioData.audioUrl;
-            audioPlayer.play();
-            playPauseBtn.textContent = "⏸️";
-            document.getElementById("videoResult").innerHTML = `
-                <h2>${title}</h2>
-                <img src="${thumbnail}" alt="${title}">
-                <p>🎵 Now Playing: ${title}</p>
-            `;
-
-            // Store the current queue index in session storage
-            sessionStorage.setItem("currentIndex", getQueue().findIndex(song => song.videoId === videoId));
-        });
-}
-
-// Get queue from session storage
-function getQueue() {
-    return JSON.parse(sessionStorage.getItem("queue")) || [];
-}
-
-// Save queue to session storage
-function saveQueue(queue) {
-    sessionStorage.setItem("queue", JSON.stringify(queue));
-}
-
-function searchMusic() {
-    const query = document.getElementById("searchQuery").value;
-    if (!query) return;
-
-    fetch(`${BACKEND_URL}/search_music?query=${encodeURIComponent(query)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.search_results.length === 0) return;
-
-            // Update session storage queue
-            saveQueue(data.search_results);
-            sessionStorage.setItem("currentIndex", 0);
-
-            fetchAudio(data.search_results[0].videoId, data.search_results[0].title, data.search_results[0].thumbnail);
-
-            // Refresh related searches
-            refreshRelatedSearches(data.search_results);
-        });
-}
-
-function refreshRelatedSearches(searchResults) {
-    const carouselContainer = document.getElementById("carouselContainer");
-    carouselContainer.innerHTML = ""; // Clear previous results
-
-    searchResults.slice(1).forEach(song => {
-        const item = document.createElement("div");
-        item.className = "carousel-item";
-        item.innerHTML = `<img src="${song.thumbnail}" alt="${song.title}"><p>${song.title}</p>`;
-        item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
-        carouselContainer.appendChild(item);
-    });
-}
-
-function prevSong() {
-    let queue = getQueue();
-    let currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
-
-    if (currentIndex > 0) {
-        currentIndex--;
-        sessionStorage.setItem("currentIndex", currentIndex);
-        fetchAudio(queue[currentIndex].videoId, queue[currentIndex].title, queue[currentIndex].thumbnail);
-    }
-}
-
-function nextSong() {
-    let queue = getQueue();
-    let currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
-
-    if (currentIndex < queue.length - 1) {
-        currentIndex++;
-        sessionStorage.setItem("currentIndex", currentIndex);
-        fetchAudio(queue[currentIndex].videoId, queue[currentIndex].title, queue[currentIndex].thumbnail);
-    }
-}
-
-function showError(message) {
-    document.getElementById("errorMessage").textContent = "⚠️ " + message;
-}
-
-async function fetchTrendingSongs() {
-    try {
-        const response = await fetch(`${BACKEND_URL}/get_trending_music`);
-        const data = await response.json();
-
-        if (data.trending_music && data.trending_music.length > 0) {
-            const trendingContainer = document.getElementById("trendingContainer");
-            trendingContainer.innerHTML = ""; 
-
-            data.trending_music.forEach(song => {
-                const item = document.createElement("div");
-                item.className = "trending-item";
-                item.innerHTML = `<img src="${song.thumbnail}" alt="${song.title}"><p>${song.title}</p>`;
-                item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
-                trendingContainer.appendChild(item);
-            });
+      function togglePlayPause() {
+        if (audioPlayer.paused) {
+          audioPlayer.play();
+          playPauseBtn.textContent = "⏸️";
+        } else {
+          audioPlayer.pause();
+          playPauseBtn.textContent = "▶️";
         }
-    } catch (error) {
-        showError("Error fetching trending songs.");
-    }
-}
+      }
 
-async function fetchMostPlayedSongs() {
-    try {
-        const response = await fetch(`${BACKEND_URL}/get_most_played_songs`);
-        const data = await response.json();
+      function updateProgress() {
+        const progressBar = document.getElementById("progressBar"),
+          currentTime = document.getElementById("currentTime"),
+          totalDuration = document.getElementById("totalDuration");
+        progressBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+        currentTime.textContent = formatTime(audioPlayer.currentTime);
+        totalDuration.textContent = formatTime(audioPlayer.duration);
+      }
+      document.getElementById("progressBar").addEventListener("input", function() {
+        audioPlayer.currentTime = (this.value / 100) * audioPlayer.duration;
+      });
 
-        if (data.most_played_songs && data.most_played_songs.length > 0) {
-            const mostPlayedContainer = document.getElementById("mostPlayedContainer");
-            mostPlayedContainer.innerHTML = ""; 
+      function formatTime(s) {
+        const m = Math.floor(s / 60),
+          sec = Math.floor(s % 60);
+        return `${m}:${sec.toString().padStart(2,'0')}`;
+      }
 
-            data.most_played_songs.forEach(song => {
-                const item = document.createElement("div");
-                item.className = "most-played-item";
-                item.innerHTML = `<img src="${song.thumbnail}" alt="${song.title}"><p>${song.title}</p>`;
-                item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
-                mostPlayedContainer.appendChild(item);
-            });
+      function getQueue() {
+        return JSON.parse(sessionStorage.getItem("queue")) || [];
+      }
+
+      function saveQueue(q) {
+        sessionStorage.setItem("queue", JSON.stringify(q));
+      }
+
+      function fetchAudio(videoId, title, thumbnail) {
+        fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`).then(res => res.json()).then(data => {
+          audioPlayer.src = data.audioUrl;
+          audioPlayer.play();
+          currentSong = {
+            videoId,
+            title,
+            thumbnail
+          };
+          updateMediaSession(title, thumbnail);
+          updateNowPlaying(title, thumbnail);
+          updateFavoriteButton();
+        }).catch(() => showError("Failed to load audio"));
+      }
+
+      function updateMediaSession(title, thumbnail) {
+        if ("mediaSession" in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title,
+            artwork: [{
+              src: thumbnail,
+              sizes: "512x512"
+            }]
+          });
         }
-    } catch (error) {
-        showError("Error fetching most played songs.");
-    }
-}
+      }
 
-// Fetch trending songs and most played songs on page load
-window.onload = () => {
-    fetchTrendingSongs();
-    fetchMostPlayedSongs();
+      function updateNowPlaying(title, thumbnail) {
+        document.getElementById("videoResult").innerHTML = `
+        
+			<h2>${title}</h2>
+			<img src="${thumbnail}" alt="${title}">
+				<p>🎵 Now Playing</p>`;
+      }
 
-    // Refresh most played songs every 1 minute (60,000 ms)
-    setInterval(fetchMostPlayedSongs, 60000);
+      function searchMusic() {
+        const q = document.getElementById("searchQuery").value;
+        if (!q) return;
+        fetch(`${BACKEND_URL}/search_music?query=${encodeURIComponent(q)}`).then(r => r.json()).then(d => {
+          saveQueue(d.search_results);
+          sessionStorage.setItem("currentIndex", 0);
+          const f = d.search_results[0];
+          fetchAudio(f.videoId, f.title, f.thumbnail);
+          refreshCarousel(d.search_results);
+        }).catch(() => showError("Search failed"));
+      }
 
-    // Restore session storage queue if available
-    const queue = getQueue();
-    const currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10) || 0;
+      function prevSong() {
+        let i = parseInt(sessionStorage.getItem("currentIndex"), 10);
+        if (i > 0) i--;
+        sessionStorage.setItem("currentIndex", i);
+        const s = getQueue()[i];
+        fetchAudio(s.videoId, s.title, s.thumbnail);
+      }
 
-    if (queue.length > 0) {
-        fetchAudio(queue[currentIndex].videoId, queue[currentIndex].title, queue[currentIndex].thumbnail);
-        refreshRelatedSearches(queue);
-    }
-};
+      function nextSong() {
+        let i = parseInt(sessionStorage.getItem("currentIndex"), 10),
+          q = getQueue();
+        if (i < q.length - 1) i++;
+        else if (isRepeating) i = 0;
+        sessionStorage.setItem("currentIndex", i);
+        const s = q[i];
+        fetchAudio(s.videoId, s.title, s.thumbnail);
+      }
 
-let isRepeating = false;
-function toggleRepeat() {
-    isRepeating = !isRepeating;
-    document.querySelector("button[onclick='toggleRepeat()']").style.backgroundColor = isRepeating ? "#00cc00" : "#ff0000";
-}
+      function shuffleQueue() {
+        let q = getQueue();
+        for (let i = q.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [q[i], q[j]] = [q[j], q[i]];
+        }
+        saveQueue(q);
+        refreshCarousel(q);
+      }
 
-function shuffleQueue() {
-    let queue = getQueue();
-    for (let i = queue.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [queue[i], queue[j]] = [queue[j], queue[i]];
-    }
-    saveQueue(queue);
-}
+      function toggleRepeat() {
+        isRepeating = !isRepeating;
+        document.querySelector("button[onclick='toggleRepeat()']").style.backgroundColor = isRepeating ? "#00ff00" : "#ff0000";
+      }
 
-document.addEventListener("keydown", (event) => {
-    switch (event.code) {
-        case "Space": // Play/Pause on Spacebar
-            event.preventDefault(); // Prevent scrolling
-            togglePlayPause();
-            break;
-        case "ArrowRight": // Next track
-        case "MediaTrackNext":
-            nextSong();
-            break;
-        case "ArrowLeft": // Previous track
-        case "MediaTrackPrevious":
-            prevSong();
-            break;
-        case "MediaPlayPause":
-            togglePlayPause();
-            break;
-        case "MediaStop":
-            audioPlayer.pause();
-            audioPlayer.currentTime = 0;
-            break;
-    }
-});
- 
-// Chrome Media Session API Integration
-if ("mediaSession" in navigator) {
-navigator.mediaSession.setActionHandler("play", () => audioPlayer.play());
-    navigator.mediaSession.setActionHandler("pause", () => audioPlayer.pause());
-    navigator.mediaSession.setActionHandler("previoustrack", prevSong);
-    navigator.mediaSession.setActionHandler("nexttrack", nextSong);
-}
+      function refreshCarousel(arr) {
+        const c = document.getElementById("carouselContainer");
+        c.innerHTML = "";
+        arr.slice(1).forEach(s => {
+          const d = document.createElement("div");
+          d.className = "carousel-item";
+          d.innerHTML = `
+					<img src="${s.thumbnail}">
+						<p>${s.title}</p>`;
+          d.onclick = () => fetchAudio(s.videoId, s.title, s.thumbnail);
+          c.appendChild(d);
+        });
+      }
+
+      function populateSection(id, items) {
+        const c = document.getElementById(id);
+        c.innerHTML = "";
+        items.forEach(s => {
+          const d = document.createElement("div");
+          d.className = id.replace("Container", "-item");
+          d.innerHTML = `
+						<img src="${s.thumbnail}">
+							<p>${s.title}</p>`;
+          d.onclick = () => fetchAudio(s.videoId, s.title, s.thumbnail);
+          c.appendChild(d);
+        });
+      }
+      async function fetchTrendingSongs() {
+        try {
+          const d = await (await fetch(`${BACKEND_URL}/get_trending_music`)).json();
+          populateSection("trendingContainer", d.trending_music);
+        } catch {
+          showError("Failed to load trending");
+        }
+      }
+      async function fetchMostPlayedSongs() {
+        try {
+          const d = await (await fetch(`${BACKEND_URL}/get_most_played_songs`)).json();
+          populateSection("mostPlayedContainer", d.most_played_songs);
+        } catch {
+          showError("Failed to load most played");
+        }
+      }
+
+      function setupTimeWheels() {
+        const hrs = document.getElementById("hoursColumn"),
+          mins = document.getElementById("minutesColumn");
+
+        function handle(col, isH) {
+          const mid = col.offsetHeight / 2;
+          Array.from(col.children).forEach((it, i) => {
+            const top = it.offsetTop - col.scrollTop;
+            if (Math.abs(top - mid) < 20) {
+              it.classList.add("selected");
+              if (isH) selectedHours = i;
+              else selectedMinutes = i * 5;
+            } else it.classList.remove("selected");
+          });
+        }
+        hrs.addEventListener("scroll", () => handle(hrs, true));
+        mins.addEventListener("scroll", () => handle(mins, false));
+        hrs.scrollTop = 0;
+        mins.scrollTop = 0;
+      }
+
+      function showTimerPopup() {
+        document.getElementById("timerPopup").style.display = "block";
+        setTimeout(setupTimeWheels, 50);
+      }
+
+      function hideTimerPopup() {
+        document.getElementById("timerPopup").style.display = "none";
+      }
+
+      function setSleepTimer() {
+        const total = (selectedHours * 60 + selectedMinutes) * 60000;
+        if (total > 0) sleepTimer = setTimeout(() => {
+          audioPlayer.pause();
+          audioPlayer.currentTime = 0;
+          showNotification("Sleep timer ended playback");
+        }, total);
+        hideTimerPopup();
+      }
+
+      function resetSleepTimer() {
+        if (sleepTimer) clearTimeout(sleepTimer);
+        hideTimerPopup();
+      }
+
+      function toggleFavorite() {
+        if (!currentSong) return;
+        const idx = favorites.findIndex(f => f.videoId === currentSong.videoId);
+        if (idx === -1) {
+          favorites.push(currentSong);
+          showNotification("✅ Added to Favorites");
+        } else {
+          favorites.splice(idx, 1);
+          showNotification("🗑️ Removed from Favorites");
+        }
+        localStorage.setItem("favorites", JSON.stringify(favorites));
+        updateFavoriteButton();
+        refreshFavoritesList();
+      }
+
+      function updateFavoriteButton() {
+        const h = document.querySelector(".heart-icon");
+        const isFav = currentSong && favorites.some(f => f.videoId === currentSong.videoId);
+        h.classList.toggle("favorited", isFav);
+      }
+
+      function refreshFavoritesList() {
+        const c = document.getElementById("favoritesList");
+        c.innerHTML = "";
+        favorites.forEach(s => {
+          const d = document.createElement("div");
+          d.className = "favorite-item";
+          d.innerHTML = `
+								<img src="${s.thumbnail}">
+									<p>${s.title}</p>`;
+          d.onclick = () => {
+            let q = getQueue(),
+              i = q.findIndex(x => x.videoId === s.videoId);
+            if (i === -1) {
+              q.unshift(s);
+              saveQueue(q);
+              i = 0;
+            }
+            sessionStorage.setItem("currentIndex", i);
+            fetchAudio(s.videoId, s.title, s.thumbnail);
+          };
+          c.appendChild(d);
+        });
+      }
+
+      function toggleFavorites() {
+        const sec = document.getElementById("favoritesSection");
+        const disp = window.getComputedStyle(sec).display;
+        if (disp === "none") {
+          sec.style.display = "block";
+          favToggleBtn.textContent = "💔 Hide Favorites";
+          refreshFavoritesList();
+        } else {
+          sec.style.display = "none";
+          favToggleBtn.textContent = "❤️ Show Favorites";
+        }
+      }
+
+      function showNotification(msg) {
+        const n = document.getElementById("notification");
+        n.textContent = msg;
+        n.style.display = "block";
+        setTimeout(() => n.style.display = "none", 3000);
+      }
+
+      function showError(msg) {
+        const e = document.getElementById("errorMessage");
+        e.textContent = msg;
+        setTimeout(() => e.textContent = "", 5000);
+      }
+      document.addEventListener("keydown", e => {
+        if (document.activeElement.tagName === "INPUT") return;
+        if (e.key === " ") {
+          e.preventDefault();
+          togglePlayPause();
+        }
+        if (e.key === "ArrowLeft") prevSong();
+        if (e.key === "ArrowRight") nextSong();
+        if (e.key === "s") shuffleQueue();
+        if (e.key === "r") toggleRepeat();
+      });
+      window.onload = () => {
+        fetchTrendingSongs();
+        fetchMostPlayedSongs();
+        setInterval(fetchMostPlayedSongs, 30000);
+        refreshFavoritesList();
+        const q = getQueue();
+        if (q.length) {
+          const i = parseInt(sessionStorage.getItem("currentIndex"), 10) || 0,
+            s = q[i];
+          fetchAudio(s.videoId, s.title, s.thumbnail);
+          refreshCarousel(q);
+        }
+        favToggleBtn.addEventListener("click", toggleFavorites);
+      };
     </script>
-</body>
+  </body>
 </html>
