@@ -10,3 +10,5 @@ pydub
 mutagen
 youtube_dl
 pytube
+flask==2.1.1
+requests==2.27.1
