@@ -179,10 +179,12 @@
       }
 
       .time-selector {
+        position: relative;
         display: flex;
         gap: 10px;
         height: 200px;
         overflow: hidden;
+        padding: 40px 0;
       }
 
       .time-column {
@@ -190,6 +192,36 @@
         overflow-y: auto;
         scroll-snap-type: y mandatory;
         height: 100%;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .time-column::-webkit-scrollbar {
+        display: none;
+      }
+
+      .time-column::before,
+      .time-column::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: linear-gradient(to bottom, 
+          rgba(51,51,51,1) 0%, 
+          rgba(51,51,51,0) 100%
+        );
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .time-column::before {
+        top: 0;
+      }
+
+      .time-column::after {
+        bottom: 0;
+        transform: rotate(180deg);
       }
 
       .time-item {
@@ -198,28 +230,48 @@
         text-align: center;
         font-size: 18px;
         color: #888;
-        transition: all 0.2s;
+        transition: all 0.3s;
         height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
+        opacity: 0.4;
       }
 
       .time-item.selected {
         color: white;
         font-size: 24px;
         font-weight: bold;
+        opacity: 1;
+        transform: scale(1.2);
       }
 
       .countdown-display {
-        font-size: 32px;
+        font-size: 2.5em;
+        font-family: monospace;
         margin: 20px 0;
-        letter-spacing: 2px;
+        text-shadow: 0 0 10px rgba(255,255,255,0.3);
+      }
+
+      .countdown-digit {
+        display: inline-block;
+        min-width: 0.8em;
+        text-align: center;
+      }
+
+      .countdown-separator {
+        margin: 0 2px;
       }
 
       .active-timer {
         display: none;
         text-align: center;
+      }
+
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
       }
 
       .favorites-section {
@@ -282,17 +334,29 @@
       </div>
       <div class="time-selector">
         <div class="time-column" id="hoursColumn">
+          <div style="height: 100px"></div>
           <div class="time-item">0h</div>
           <div class="time-item">1h</div>
           <div class="time-item">2h</div>
           <div class="time-item">3h</div>
           <div class="time-item">4h</div>
+          <div style="height: 100px"></div>
         </div>
-        <div class="time-column" id="minutesColumn"></div>
-        <div class="time-column" id="secondsColumn"></div>
+        <div class="time-column" id="minutesColumn">
+          <div style="height: 100px"></div>
+        </div>
+        <div class="time-column" id="secondsColumn">
+          <div style="height: 100px"></div>
+        </div>
       </div>
       <div class="active-timer" id="activeTimer">
-        <div class="countdown-display" id="countdownDisplay"></div>
+        <div class="countdown-display" id="countdownDisplay">
+          <span class="countdown-digit">00</span>
+          <span class="countdown-separator">:</span>
+          <span class="countdown-digit">00</span>
+          <span class="countdown-separator">:</span>
+          <span class="countdown-digit">00</span>
+        </div>
         <button onclick="resetSleepTimer()">Cancel Timer</button>
       </div>
       <div style="margin-top: 20px;">
@@ -314,6 +378,7 @@
     <div id="mostPlayedContainer" class="most-played"></div>
     <p id="errorMessage" class="error"></p>
     <div class="notification" id="notification"></div>
+
     <script>
       const BACKEND_URL = "https://musiclib-production.up.railway.app";
       const audioPlayer = document.getElementById("audioPlayer");
@@ -330,25 +395,30 @@
       let selectedSeconds = 0;
       let currentSong = null;
 
+      // Timer Functions
       function initializeTimeWheels() {
         const minutesColumn = document.getElementById("minutesColumn");
         const secondsColumn = document.getElementById("secondsColumn");
         
-        minutesColumn.innerHTML = '';
+        // Populate minutes (0-59)
+        minutesColumn.innerHTML = '<div style="height: 100px"></div>';
         for (let i = 0; i < 60; i++) {
           const div = document.createElement("div");
           div.className = "time-item";
           div.textContent = `${i}m`;
           minutesColumn.appendChild(div);
         }
+        minutesColumn.innerHTML += '<div style="height: 100px"></div>';
         
-        secondsColumn.innerHTML = '';
+        // Populate seconds (0-59)
+        secondsColumn.innerHTML = '<div style="height: 100px"></div>';
         for (let i = 0; i < 60; i++) {
           const div = document.createElement("div");
           div.className = "time-item";
           div.textContent = `${i}s`;
           secondsColumn.appendChild(div);
         }
+        secondsColumn.innerHTML += '<div style="height: 100px"></div>';
       }
 
       function setupTimeWheels() {
@@ -357,26 +427,32 @@
         const secondsColumn = document.getElementById("secondsColumn");
         const itemHeight = 40;
 
-        hoursColumn.scrollTop = selectedHours * itemHeight;
-        minutesColumn.scrollTop = selectedMinutes * itemHeight;
-        secondsColumn.scrollTop = selectedSeconds * itemHeight;
+        const setScrollPosition = (column, value) => {
+          column.scrollTop = (value * itemHeight) + 100;
+        };
 
-        function handleScroll(column, type) {
-          const mid = column.offsetHeight / 2;
+        setScrollPosition(hoursColumn, selectedHours);
+        setScrollPosition(minutesColumn, selectedMinutes);
+        setScrollPosition(secondsColumn, selectedSeconds);
+
+        const handleScroll = (column, type) => {
+          const selectedIndex = Math.round(
+            (column.scrollTop - 100) / itemHeight
+          );
+          
           Array.from(column.children).forEach((item, index) => {
-            const itemTop = item.offsetTop - column.scrollTop;
-            if (Math.abs(itemTop - mid) < itemHeight) {
+            if (index === selectedIndex + 1) {
               item.classList.add("selected");
               switch(type) {
-                case 'hours': selectedHours = index; break;
-                case 'minutes': selectedMinutes = index; break;
-                case 'seconds': selectedSeconds = index; break;
+                case 'hours': selectedHours = index - 1; break;
+                case 'minutes': selectedMinutes = index - 1; break;
+                case 'seconds': selectedSeconds = index - 1; break;
               }
             } else {
               item.classList.remove("selected");
             }
           });
-        }
+        };
 
         hoursColumn.addEventListener("scroll", () => handleScroll(hoursColumn, 'hours'));
         minutesColumn.addEventListener("scroll", () => handleScroll(minutesColumn, 'minutes'));
@@ -399,8 +475,15 @@
         const minutes = Math.floor((remaining % 3600000) / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
         
-        document.getElementById("countdownDisplay").textContent = 
-          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        const digits = document.querySelectorAll(".countdown-digit");
+        const format = num => num.toString().padStart(2, '0');
+        
+        digits[0].textContent = format(hours);
+        digits[1].textContent = format(minutes);
+        digits[2].textContent = format(seconds);
+        
+        digits[2].style.animation = 'pulse 1s ease-in-out';
+        setTimeout(() => digits[2].style.animation = '', 1000);
       }
 
       function setSleepTimer() {
@@ -445,6 +528,7 @@
         document.getElementById("timerPopup").style.display = "none";
       }
 
+      // Music Player Functions
       function togglePlayPause() {
         if (audioPlayer.paused) {
           audioPlayer.play();
