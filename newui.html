@@ -111,7 +111,6 @@
         border-radius: 8px;
       }
 
-      /* Heart Button */
       .favorite-btn {
         background: none;
         border: none;
@@ -135,7 +134,6 @@
         filter: drop-shadow(0 0 2px #ff0000);
       }
 
-      /* Sleep Timer Styles */
       .sleep-timer-btn {
         position: fixed;
         bottom: 20px;
@@ -182,6 +180,10 @@
         font-size: 18px;
         color: #888;
         transition: all 0.2s;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .time-item.selected {
@@ -194,7 +196,6 @@
         display: none;
       }
 
-      /* Favorites Section */
       .favorites-section {
         display: none;
         margin-top: 20px;
@@ -211,7 +212,6 @@
         z-index: 1000;
       }
 
-      /* Notification */
       .notification {
         position: fixed;
         bottom: 20px;
@@ -248,7 +248,6 @@
       <button onclick="nextSong()">⏭️</button>
       <button onclick="toggleRepeat()">🔁</button>
     </div>
-    <!-- Sleep Timer -->
     <div class="sleep-timer-btn" onclick="showTimerPopup()" title="Sleep Timer">⏱</div>
     <div class="timer-popup" id="timerPopup">
       <h3>Set Sleep Timer</h3>
@@ -259,71 +258,8 @@
           <div class="time-item">2h</div>
           <div class="time-item">3h</div>
           <div class="time-item">4h</div>
-            <div class="time-item">5h</div>
-            <div class="time-item">6h</div>
         </div>
-        <div class="time-column" id="minutesColumn">
-          <div class="time-item">0m</div>
-            <div class="time-item">1m</div>
-            <div class="time-item">2m</div>
-            <div class="time-item">3m</div>
-            <div class="time-item">4m</div>
-            <div class="time-item">5m</div>
-            <div class="time-item">6m</div>
-            <div class="time-item">7m</div>
-            <div class="time-item">8m</div>>
-            <div class="time-item">9m</div>>
-            <div class="time-item">10m</div>
-            <div class="time-item">11m</div>
-            <div class="time-item">12m</div>
-            <div class="time-item">13m</div>
-            <div class="time-item">14m</div>
-            <div class="time-item">15m</div>
-            <div class="time-item">16m</div>
-            <div class="time-item">17m</div>
-            <div class="time-item">18m</div>
-            <div class="time-item">19m</div>
-            <div class="time-item">20m</div>
-            <div class="time-item">21m</div>
-            <div class="time-item">22m</div>
-            <div class="time-item">23m</div>
-          <div class="time-item">24m</div>>
-          <div class="time-item">25m</div>>
-          <div class="time-item">26m</div>>
-          <div class="time-item">27m</div>>
-          <div class="time-item">28m</div>>
-          <div class="time-item">29m</div>>
-          <div class="time-item">30m</div>>
-          <div class="time-item">31m</div>>
-          <div class="time-item">32m</div>>
-          <div class="time-item">33m</div>>
-          <div class="time-item">34m</div>
-          <div class="time-item">35m</div>
-          <div class="time-item">36m</div>
-          <div class="time-item">37m</div>
-          <div class="time-item">38m</div>
-          <div class="time-item">39m</div>
-          <div class="time-item">40m</div>
-          <div class="time-item">41m</div>
-          <div class="time-item">42m</div>
-          <div class="time-item">23m</div>
-          <div class="time-item">44m</div>
-          <div class="time-item">45m</div>
-          <div class="time-item">46m</div>
-          <div class="time-item">47m</div>
-          <div class="time-item">48m</div>
-          <div class="time-item">49m</div>
-          <div class="time-item">50m</div>
-          <div class="time-item">51m</div>
-          <div class="time-item">52m</div>
-          <div class="time-item">53m</div>
-          <div class="time-item">54m</div>
-          <div class="time-item">55m</div>
-          <div class="time-item">56m</div>
-          <div class="time-item">57m</div>
-          <div class="time-item">58m</div>
-          <div class="time-item">59m</div>
-        </div>
+        <div class="time-column" id="minutesColumn"></div>
       </div>
       <div style="margin-top: 20px;">
         <button onclick="setSleepTimer()">Apply</button>
@@ -331,7 +267,6 @@
         <button onclick="hideTimerPopup()">Cancel</button>
       </div>
     </div>
-    <!-- Favorites Section -->
     <button class="favorites-toggle" id="favoritesToggleBtn" onclick="toggleFavorites()">❤️ Show Favorites</button>
     <div class="favorites-section" id="favoritesSection">
       <h2>Your Favorite Songs</h2>
@@ -351,12 +286,24 @@
       const audioPlayer = document.getElementById("audioPlayer");
       const playPauseBtn = document.getElementById("playPauseBtn");
       const favToggleBtn = document.getElementById("favoritesToggleBtn");
-      let isRepeating = false,
-        sleepTimer = null;
+      
+      let isRepeating = false;
+      let sleepTimer = null;
       let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
-      let selectedHours = 0,
-        selectedMinutes = 0;
+      let selectedHours = 0;
+      let selectedMinutes = 0;
       let currentSong = null;
+
+      // Initialize minute wheel
+      function initializeMinuteWheel() {
+        const minutesColumn = document.getElementById("minutesColumn");
+        for (let i = 0; i < 60; i++) {
+          const div = document.createElement("div");
+          div.className = "time-item";
+          div.textContent = `${i}m`;
+          minutesColumn.appendChild(div);
+        }
+      }
 
       function togglePlayPause() {
         if (audioPlayer.paused) {
@@ -369,104 +316,110 @@
       }
 
       function updateProgress() {
-        const progressBar = document.getElementById("progressBar"),
-          currentTime = document.getElementById("currentTime"),
-          totalDuration = document.getElementById("totalDuration");
+        const progressBar = document.getElementById("progressBar");
+        const currentTime = document.getElementById("currentTime");
+        const totalDuration = document.getElementById("totalDuration");
+        
         progressBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
         currentTime.textContent = formatTime(audioPlayer.currentTime);
         totalDuration.textContent = formatTime(audioPlayer.duration);
       }
+
       document.getElementById("progressBar").addEventListener("input", function() {
         audioPlayer.currentTime = (this.value / 100) * audioPlayer.duration;
       });
 
-      function formatTime(s) {
-        const m = Math.floor(s / 60),
-          sec = Math.floor(s % 60);
-        return `${m}:${sec.toString().padStart(2,'0')}`;
+      function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
       }
 
       function getQueue() {
         return JSON.parse(sessionStorage.getItem("queue")) || [];
       }
 
-      function saveQueue(q) {
-        sessionStorage.setItem("queue", JSON.stringify(q));
+      function saveQueue(queue) {
+        sessionStorage.setItem("queue", JSON.stringify(queue));
       }
 
       function fetchAudio(videoId, title, thumbnail) {
-        fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`).then(res => res.json()).then(data => {
-          audioPlayer.src = data.audioUrl;
-          audioPlayer.play();
-          currentSong = {
-            videoId,
-            title,
-            thumbnail
-          };
-          updateMediaSession(title, thumbnail);
-          updateNowPlaying(title, thumbnail);
-          updateFavoriteButton();
-        }).catch(() => showError("Failed to load audio"));
+        fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`)
+          .then(response => response.json())
+          .then(data => {
+            audioPlayer.src = data.audioUrl;
+            audioPlayer.play();
+            currentSong = { videoId, title, thumbnail };
+            updateMediaSession(title, thumbnail);
+            updateNowPlaying(title, thumbnail);
+            updateFavoriteButton();
+          })
+          .catch(() => showError("Failed to load audio"));
       }
 
       function updateMediaSession(title, thumbnail) {
         if ("mediaSession" in navigator) {
           navigator.mediaSession.metadata = new MediaMetadata({
             title,
-            artwork: [{
-              src: thumbnail,
-              sizes: "512x512"
-            }]
+            artwork: [{ src: thumbnail, sizes: "512x512" }]
           });
         }
       }
 
       function updateNowPlaying(title, thumbnail) {
         document.getElementById("videoResult").innerHTML = `
-        
-			<h2>${title}</h2>
-			<img src="${thumbnail}" alt="${title}">
-				<p>🎵 Now Playing</p>`;
+          <h2>${title}</h2>
+          <img src="${thumbnail}" alt="${title}">
+          <p>🎵 Now Playing</p>`;
       }
 
       function searchMusic() {
-        const q = document.getElementById("searchQuery").value;
-        if (!q) return;
-        fetch(`${BACKEND_URL}/search_music?query=${encodeURIComponent(q)}`).then(r => r.json()).then(d => {
-          saveQueue(d.search_results);
-          sessionStorage.setItem("currentIndex", 0);
-          const f = d.search_results[0];
-          fetchAudio(f.videoId, f.title, f.thumbnail);
-          refreshCarousel(d.search_results);
-        }).catch(() => showError("Search failed"));
+        const query = document.getElementById("searchQuery").value;
+        if (!query) return;
+        
+        fetch(`${BACKEND_URL}/search_music?query=${encodeURIComponent(query)}`)
+          .then(response => response.json())
+          .then(data => {
+            saveQueue(data.search_results);
+            sessionStorage.setItem("currentIndex", 0);
+            const firstResult = data.search_results[0];
+            fetchAudio(firstResult.videoId, firstResult.title, firstResult.thumbnail);
+            refreshCarousel(data.search_results);
+          })
+          .catch(() => showError("Search failed"));
       }
 
       function prevSong() {
-        let i = parseInt(sessionStorage.getItem("currentIndex"), 10);
-        if (i > 0) i--;
-        sessionStorage.setItem("currentIndex", i);
-        const s = getQueue()[i];
-        fetchAudio(s.videoId, s.title, s.thumbnail);
+        let currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
+        if (currentIndex > 0) currentIndex--;
+        sessionStorage.setItem("currentIndex", currentIndex);
+        const song = getQueue()[currentIndex];
+        fetchAudio(song.videoId, song.title, song.thumbnail);
       }
 
       function nextSong() {
-        let i = parseInt(sessionStorage.getItem("currentIndex"), 10),
-          q = getQueue();
-        if (i < q.length - 1) i++;
-        else if (isRepeating) i = 0;
-        sessionStorage.setItem("currentIndex", i);
-        const s = q[i];
-        fetchAudio(s.videoId, s.title, s.thumbnail);
+        let currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
+        const queue = getQueue();
+        
+        if (currentIndex < queue.length - 1) {
+          currentIndex++;
+        } else if (isRepeating) {
+          currentIndex = 0;
+        }
+        
+        sessionStorage.setItem("currentIndex", currentIndex);
+        const song = queue[currentIndex];
+        fetchAudio(song.videoId, song.title, song.thumbnail);
       }
 
       function shuffleQueue() {
-        let q = getQueue();
-        for (let i = q.length - 1; i > 0; i--) {
+        const queue = getQueue();
+        for (let i = queue.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [q[i], q[j]] = [q[j], q[i]];
+          [queue[i], queue[j]] = [queue[j], queue[i]];
         }
-        saveQueue(q);
-        refreshCarousel(q);
+        saveQueue(queue);
+        refreshCarousel(queue);
       }
 
       function toggleRepeat() {
@@ -474,74 +427,85 @@
         document.querySelector("button[onclick='toggleRepeat()']").style.backgroundColor = isRepeating ? "#00ff00" : "#ff0000";
       }
 
-      function refreshCarousel(arr) {
-        const c = document.getElementById("carouselContainer");
-        c.innerHTML = "";
-        arr.slice(1).forEach(s => {
-          const d = document.createElement("div");
-          d.className = "carousel-item";
-          d.innerHTML = `
-					<img src="${s.thumbnail}">
-						<p>${s.title}</p>`;
-          d.onclick = () => fetchAudio(s.videoId, s.title, s.thumbnail);
-          c.appendChild(d);
+      function refreshCarousel(results) {
+        const carousel = document.getElementById("carouselContainer");
+        carousel.innerHTML = "";
+        
+        results.slice(1).forEach(song => {
+          const item = document.createElement("div");
+          item.className = "carousel-item";
+          item.innerHTML = `
+            <img src="${song.thumbnail}">
+            <p>${song.title}</p>`;
+          item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
+          carousel.appendChild(item);
         });
       }
 
-      function populateSection(id, items) {
-        const c = document.getElementById(id);
-        c.innerHTML = "";
-        items.forEach(s => {
-          const d = document.createElement("div");
-          d.className = id.replace("Container", "-item");
-          d.innerHTML = `
-						<img src="${s.thumbnail}">
-							<p>${s.title}</p>`;
-          d.onclick = () => fetchAudio(s.videoId, s.title, s.thumbnail);
-          c.appendChild(d);
+      function populateSection(containerId, items) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+        
+        items.forEach(song => {
+          const item = document.createElement("div");
+          item.className = containerId.replace("Container", "-item");
+          item.innerHTML = `
+            <img src="${song.thumbnail}">
+            <p>${song.title}</p>`;
+          item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
+          container.appendChild(item);
         });
       }
+
       async function fetchTrendingSongs() {
         try {
-          const d = await (await fetch(`${BACKEND_URL}/get_trending_music`)).json();
-          populateSection("trendingContainer", d.trending_music);
+          const response = await fetch(`${BACKEND_URL}/get_trending_music`);
+          const data = await response.json();
+          populateSection("trendingContainer", data.trending_music);
         } catch {
           showError("Failed to load trending");
         }
       }
+
       async function fetchMostPlayedSongs() {
         try {
-          const d = await (await fetch(`${BACKEND_URL}/get_most_played_songs`)).json();
-          populateSection("mostPlayedContainer", d.most_played_songs);
+          const response = await fetch(`${BACKEND_URL}/get_most_played_songs`);
+          const data = await response.json();
+          populateSection("mostPlayedContainer", data.most_played_songs);
         } catch {
           showError("Failed to load most played");
         }
       }
 
       function setupTimeWheels() {
-        const hrs = document.getElementById("hoursColumn"),
-          mins = document.getElementById("minutesColumn");
+        const hoursColumn = document.getElementById("hoursColumn");
+        const minutesColumn = document.getElementById("minutesColumn");
+        const itemHeight = 40; // Matches CSS height
 
-        function handle(col, isH) {
-          const mid = col.offsetHeight / 2;
-          Array.from(col.children).forEach((it, i) => {
-            const top = it.offsetTop - col.scrollTop;
-            if (Math.abs(top - mid) < 20) {
-              it.classList.add("selected");
-              if (isH) selectedHours = i;
-              else selectedMinutes = i * 5;
-            } else it.classList.remove("selected");
+        hoursColumn.scrollTop = selectedHours * itemHeight;
+        minutesColumn.scrollTop = selectedMinutes * itemHeight;
+
+        function handleScroll(column, isHours) {
+          const mid = column.offsetHeight / 2;
+          Array.from(column.children).forEach((item, index) => {
+            const itemTop = item.offsetTop - column.scrollTop;
+            if (Math.abs(itemTop - mid) < itemHeight) {
+              item.classList.add("selected");
+              if (isHours) selectedHours = index;
+              else selectedMinutes = index;
+            } else {
+              item.classList.remove("selected");
+            }
           });
         }
-        hrs.addEventListener("scroll", () => handle(hrs, true));
-        mins.addEventListener("scroll", () => handle(mins, false));
-        hrs.scrollTop = 0;
-        mins.scrollTop = 0;
+
+        hoursColumn.addEventListener("scroll", () => handleScroll(hoursColumn, true));
+        minutesColumn.addEventListener("scroll", () => handleScroll(minutesColumn, false));
       }
 
       function showTimerPopup() {
         document.getElementById("timerPopup").style.display = "block";
-        setTimeout(setupTimeWheels, 50);
+        setupTimeWheels();
       }
 
       function hideTimerPopup() {
@@ -549,114 +513,138 @@
       }
 
       function setSleepTimer() {
-        const total = (selectedHours * 60 + selectedMinutes) * 60000;
-        if (total > 0) sleepTimer = setTimeout(() => {
-          audioPlayer.pause();
-          audioPlayer.currentTime = 0;
-          showNotification("Sleep timer ended playback");
-        }, total);
+        const totalMs = (selectedHours * 3600 + selectedMinutes * 60) * 1000;
+        if (totalMs > 0) {
+          if (sleepTimer) clearTimeout(sleepTimer);
+          sleepTimer = setTimeout(() => {
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            showNotification("Sleep timer ended playback");
+          }, totalMs);
+        }
         hideTimerPopup();
       }
 
       function resetSleepTimer() {
         if (sleepTimer) clearTimeout(sleepTimer);
+        selectedHours = 0;
+        selectedMinutes = 0;
         hideTimerPopup();
       }
 
       function toggleFavorite() {
         if (!currentSong) return;
-        const idx = favorites.findIndex(f => f.videoId === currentSong.videoId);
-        if (idx === -1) {
+        
+        const index = favorites.findIndex(f => f.videoId === currentSong.videoId);
+        if (index === -1) {
           favorites.push(currentSong);
           showNotification("✅ Added to Favorites");
         } else {
-          favorites.splice(idx, 1);
+          favorites.splice(index, 1);
           showNotification("🗑️ Removed from Favorites");
         }
+        
         localStorage.setItem("favorites", JSON.stringify(favorites));
         updateFavoriteButton();
         refreshFavoritesList();
       }
 
       function updateFavoriteButton() {
-        const h = document.querySelector(".heart-icon");
-        const isFav = currentSong && favorites.some(f => f.videoId === currentSong.videoId);
-        h.classList.toggle("favorited", isFav);
+        const heartIcon = document.querySelector(".heart-icon");
+        const isFavorited = currentSong && favorites.some(f => f.videoId === currentSong.videoId);
+        heartIcon.classList.toggle("favorited", isFavorited);
       }
 
       function refreshFavoritesList() {
-        const c = document.getElementById("favoritesList");
-        c.innerHTML = "";
-        favorites.forEach(s => {
-          const d = document.createElement("div");
-          d.className = "favorite-item";
-          d.innerHTML = `
-								<img src="${s.thumbnail}">
-									<p>${s.title}</p>`;
-          d.onclick = () => {
-            let q = getQueue(),
-              i = q.findIndex(x => x.videoId === s.videoId);
-            if (i === -1) {
-              q.unshift(s);
-              saveQueue(q);
-              i = 0;
+        const container = document.getElementById("favoritesList");
+        container.innerHTML = "";
+        
+        favorites.forEach(song => {
+          const item = document.createElement("div");
+          item.className = "favorite-item";
+          item.innerHTML = `
+            <img src="${song.thumbnail}" alt="${song.title}">
+            <p>${song.title}</p>`;
+            
+          item.onclick = () => {
+            const queue = getQueue();
+            const index = queue.findIndex(track => track.videoId === song.videoId);
+            
+            if (index === -1) {
+              queue.unshift(song);
+              saveQueue(queue);
+              sessionStorage.setItem("currentIndex", 0);
+            } else {
+              sessionStorage.setItem("currentIndex", index);
             }
-            sessionStorage.setItem("currentIndex", i);
-            fetchAudio(s.videoId, s.title, s.thumbnail);
+            
+            fetchAudio(song.videoId, song.title, song.thumbnail);
           };
-          c.appendChild(d);
+          
+          container.appendChild(item);
         });
       }
 
       function toggleFavorites() {
-        const sec = document.getElementById("favoritesSection");
-        const disp = window.getComputedStyle(sec).display;
-        if (disp === "none") {
-          sec.style.display = "block";
-          favToggleBtn.textContent = "💔 Hide Favorites";
-          refreshFavoritesList();
-        } else {
-          sec.style.display = "none";
-          favToggleBtn.textContent = "❤️ Show Favorites";
-        }
+        const section = document.getElementById("favoritesSection");
+        const isVisible = section.style.display === "block";
+        
+        section.style.display = isVisible ? "none" : "block";
+        favToggleBtn.textContent = isVisible ? "❤️ Show Favorites" : "💔 Hide Favorites";
+        
+        if (!isVisible) refreshFavoritesList();
       }
 
-      function showNotification(msg) {
-        const n = document.getElementById("notification");
-        n.textContent = msg;
-        n.style.display = "block";
-        setTimeout(() => n.style.display = "none", 3000);
+      function showNotification(message) {
+        const notification = document.getElementById("notification");
+        notification.textContent = message;
+        notification.style.display = "block";
+        setTimeout(() => notification.style.display = "none", 3000);
       }
 
-      function showError(msg) {
-        const e = document.getElementById("errorMessage");
-        e.textContent = msg;
-        setTimeout(() => e.textContent = "", 5000);
+      function showError(message) {
+        const errorElement = document.getElementById("errorMessage");
+        errorElement.textContent = message;
+        setTimeout(() => errorElement.textContent = "", 5000);
       }
-      document.addEventListener("keydown", e => {
+
+      document.addEventListener("keydown", (event) => {
         if (document.activeElement.tagName === "INPUT") return;
-        if (e.key === " ") {
-          e.preventDefault();
-          togglePlayPause();
+        
+        switch(event.key) {
+          case " ":
+            event.preventDefault();
+            togglePlayPause();
+            break;
+          case "ArrowLeft":
+            prevSong();
+            break;
+          case "ArrowRight":
+            nextSong();
+            break;
+          case "s":
+            shuffleQueue();
+            break;
+          case "r":
+            toggleRepeat();
+            break;
         }
-        if (e.key === "ArrowLeft") prevSong();
-        if (e.key === "ArrowRight") nextSong();
-        if (e.key === "s") shuffleQueue();
-        if (e.key === "r") toggleRepeat();
       });
+
       window.onload = () => {
+        initializeMinuteWheel();
         fetchTrendingSongs();
         fetchMostPlayedSongs();
         setInterval(fetchMostPlayedSongs, 30000);
         refreshFavoritesList();
-        const q = getQueue();
-        if (q.length) {
-          const i = parseInt(sessionStorage.getItem("currentIndex"), 10) || 0,
-            s = q[i];
-          fetchAudio(s.videoId, s.title, s.thumbnail);
-          refreshCarousel(q);
+        
+        const queue = getQueue();
+        if (queue.length) {
+          const index = parseInt(sessionStorage.getItem("currentIndex"), 10) || 0;
+          const song = queue[index];
+          fetchAudio(song.videoId, song.title, song.thumbnail);
+          refreshCarousel(queue);
         }
-        favToggleBtn.addEventListener("click", toggleFavorites);
       };
     </script>
   </body>
