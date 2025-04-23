@@ -1,8 +1,6 @@
-flask
 yt-dlp
 gunicorn
 flask-cors
-requests
 ffmpeg
 pydantic<2
 jiosaavn
