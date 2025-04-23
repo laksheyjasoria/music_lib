@@ -59,74 +59,19 @@ def get_audio_url_invidious(video_id: str) -> Optional[str]:
     return None
 
 
-# def get_audio_url(video_id: str) -> Optional[str]:
-#     """
-#     Fetches the best audio stream URL for a given YouTube video ID.
-#     Tries yt-dlp with cookies, on captcha/login errors notifies you,
-#     then falls back to Invidious.
-#     """
-#     # 1) Primary: yt-dlp + cookies
-#     ydl_opts = {
-#         "format": "bestaudio/best",
-#         "noplaylist": True,
-#         "quiet": True,
-#         "skip_download": True,
-#         # "cookiefile": "cookies.txt",
-#     }
-
-#     try:
-#         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-#             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-#             url = info.get("url")
-#             if url:
-#                 log.info("Extracted audio URL via yt-dlp.")
-#                 return url
-#     except yt_dlp.utils.DownloadError as dde:
-#         msg = str(dde)
-#         if "Sign in to confirm you’re not a bot" in msg or "Use --cookies" in msg:
-#             alert = (
-#                 f"🚨 yt-dlp CAPTCHA/Login needed for {video_id} — cookies.txt probably expired.\n"
-#                 f"Error: {msg.splitlines()[0]}"
-#             )
-#             log.warning(alert)
-#             notify_telegram(alert)
-#         else:
-#             log.error(f"yt-dlp DownloadError: {msg}")
-#     except Exception as e:
-#         log.error(f"Unexpected error in yt-dlp extraction: {e}")
-
-#     # 2) Fallback: Invidious
-#     log.info("Falling back to Invidious lookup…")
-#     inv_url = get_audio_url_invidious(video_id)
-#     if inv_url:
-#         log.info("Got audio URL via Invidious.")
-#         return inv_url
-
-#     log.error("Both yt-dlp and Invidious fallbacks failed.")
-#     return None
-
-def get_audio_url(video_id: str, cookies_json_path: str = "cookies.json") -> Optional[str]:
+def get_audio_url(video_id: str) -> Optional[str]:
     """
-    Fetches the best audio stream URL for a given YouTube video ID using yt-dlp.
-    Loads cookies from a JSON file instead of a text cookie file.
-    Alerts on CAPTCHA or login errors. No fallback to Invidious.
+    Fetches the best audio stream URL for a given YouTube video ID.
+    Tries yt-dlp with cookies, on captcha/login errors notifies you,
+    then falls back to Invidious.
     """
-
-    # Load cookies from JSON file
-    try:
-        with open(cookies_json_path, "r", encoding="utf-8") as f:
-            cookie_list = json.load(f)
-    except Exception as e:
-        log.error(f"Failed to load cookies from {cookies_json_path}: {e}")
-        return None
-
-    # Configure yt-dlp with cookies
+    # 1) Primary: yt-dlp + cookies
     ydl_opts = {
         "format": "bestaudio/best",
         "noplaylist": True,
         "quiet": True,
         "skip_download": True,
-        "cookies": cookie_list,  # Pass cookies as dict list
+        "cookiefile": utils.convert_cookies_to_ytdlp_format()
     }
 
     try:
@@ -140,7 +85,7 @@ def get_audio_url(video_id: str, cookies_json_path: str = "cookies.json") -> Opt
         msg = str(dde)
         if "Sign in to confirm you’re not a bot" in msg or "Use --cookies" in msg:
             alert = (
-                f"🚨 yt-dlp CAPTCHA/Login needed for {video_id} — cookies.json probably expired.\n"
+                f"🚨 yt-dlp CAPTCHA/Login needed for {video_id} — cookies.txt probably expired.\n"
                 f"Error: {msg.splitlines()[0]}"
             )
             log.warning(alert)
@@ -150,8 +95,63 @@ def get_audio_url(video_id: str, cookies_json_path: str = "cookies.json") -> Opt
     except Exception as e:
         log.error(f"Unexpected error in yt-dlp extraction: {e}")
 
-    log.error("yt-dlp failed to extract the audio URL.")
+    # 2) Fallback: Invidious
+    log.info("Falling back to Invidious lookup…")
+    inv_url = get_audio_url_invidious(video_id)
+    if inv_url:
+        log.info("Got audio URL via Invidious.")
+        return inv_url
+
+    log.error("Both yt-dlp and Invidious fallbacks failed.")
     return None
+
+# def get_audio_url(video_id: str, cookies_json_path: str = "cookies.json") -> Optional[str]:
+#     """
+#     Fetches the best audio stream URL for a given YouTube video ID using yt-dlp.
+#     Loads cookies from a JSON file instead of a text cookie file.
+#     Alerts on CAPTCHA or login errors. No fallback to Invidious.
+#     """
+
+#     # Load cookies from JSON file
+#     try:
+#         with open(cookies_json_path, "r", encoding="utf-8") as f:
+#             cookie_list = json.load(f)
+#     except Exception as e:
+#         log.error(f"Failed to load cookies from {cookies_json_path}: {e}")
+#         return None
+
+#     # Configure yt-dlp with cookies
+#     ydl_opts = {
+#         "format": "bestaudio/best",
+#         "noplaylist": True,
+#         "quiet": True,
+#         "skip_download": True,
+#         "cookies": cookie_list,  # Pass cookies as dict list
+#     }
+
+#     try:
+#         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+#             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+#             url = info.get("url")
+#             if url:
+#                 log.info("Extracted audio URL via yt-dlp.")
+#                 return url
+#     except yt_dlp.utils.DownloadError as dde:
+#         msg = str(dde)
+#         if "Sign in to confirm you’re not a bot" in msg or "Use --cookies" in msg:
+#             alert = (
+#                 f"🚨 yt-dlp CAPTCHA/Login needed for {video_id} — cookies.json probably expired.\n"
+#                 f"Error: {msg.splitlines()[0]}"
+#             )
+#             log.warning(alert)
+#             notify_telegram(alert)
+#         else:
+#             log.error(f"yt-dlp DownloadError: {msg}")
+#     except Exception as e:
+#         log.error(f"Unexpected error in yt-dlp extraction: {e}")
+
+#     log.error("yt-dlp failed to extract the audio URL.")
+#     return None
 
 
 # if __name__ == "__main__":
