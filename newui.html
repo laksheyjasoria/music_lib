@@ -567,19 +567,35 @@
         sessionStorage.setItem("queue", JSON.stringify(queue));
       }
 
-      function fetchAudio(videoId, title, thumbnail) {
-        fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`)
-          .then(response => response.json())
-          .then(data => {
-            audioPlayer.src = data.audioUrl;
-            audioPlayer.play();
-            currentSong = { videoId, title, thumbnail };
-            updateMediaSession(title, thumbnail);
-            updateNowPlaying(title, thumbnail);
-            updateFavoriteButton();
-          })
-          .catch(() => showError("Failed to load audio"));
+  async function fetchAudio(videoId, title, thumbnail, retryCount = 0) {
+    try {
+      const response = await fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`);
+      if (!response.ok) throw new Error('Network error');
+      
+      const data = await response.json();
+      if (!data.audioUrl) throw new Error('No audio URL');
+
+      audioPlayer.src = data.audioUrl;
+      await audioPlayer.play();
+      
+      currentSong = { videoId, title, thumbnail };
+      updateMediaSession(title, thumbnail);
+      updateNowPlaying(title, thumbnail);
+      updateFavoriteButton();
+      
+    } catch (error) {
+      if (retryCount < 1) {
+        console.log(`Retrying ${title}...`);
+        showNotification(`Retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Wait 1 second before retry
+        return fetchAudio(videoId, title, thumbnail, retryCount + 1);
       }
+      
+      console.error('Failed to load audio after 2 attempts:', error);
+      showError("Failed to load audio, playing next song");
+      nextSong();
+    }
+  }
 
       function updateMediaSession(title, thumbnail) {
         if ("mediaSession" in navigator) {
