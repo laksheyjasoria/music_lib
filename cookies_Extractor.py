@@ -1,12 +1,15 @@
 import os
 import requests
 
-def download_file_from_google_drive(file_id, filename=None):
+DEFAULT_FILE_ID = '18tMZ36WoVNOA-JvdGgFhq4cYdqsMU66Q'
+DEFAULT_FILENAME = 'cookies.json'
+
+def download_file_from_google_drive(file_id=DEFAULT_FILE_ID, filename=DEFAULT_FILENAME):
     """
     Downloads a file from Google Drive and saves it in the current working directory.
 
     :param file_id: The unique identifier of the file on Google Drive.
-    :param filename: Optional. The name to save the file as. If not provided, the file_id is used.
+    :param filename: The name to save the file as.
     """
     URL = "https://docs.google.com/uc?export=download"
 
@@ -18,10 +21,6 @@ def download_file_from_google_drive(file_id, filename=None):
         params = {'id': file_id, 'confirm': token}
         response = session.get(URL, params=params, stream=True)
 
-    # Determine the filename
-    if not filename:
-        filename = file_id  # Default to file_id if no filename is provided
-
     # Get the current working directory
     current_directory = os.getcwd()
 
@@ -29,7 +28,7 @@ def download_file_from_google_drive(file_id, filename=None):
     destination = os.path.join(current_directory, filename)
 
     save_response_content(response, destination)
-    print(f"File downloaded successfully and saved as: {destination}")
+    return destination
 
 def get_confirm_token(response):
     """
@@ -56,9 +55,3 @@ def save_response_content(response, destination):
         for chunk in response.iter_content(CHUNK_SIZE):
             if chunk:  # Filter out keep-alive new chunks
                 f.write(chunk)
-
-# # Example usage
-# if __name__ == "__main__":
-#     file_id = 'YOUR_FILE_ID'  # Replace with your actual file ID
-#     # Optionally, specify a filename. If not provided, file_id will be used as the filename.
-#     download_file_from_google_drive(file_id, filename='desired_filename.ext')
