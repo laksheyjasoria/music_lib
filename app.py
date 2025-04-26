@@ -139,8 +139,8 @@ def get_trending_music():
 
 @app.route('/download', methods=['GET'])
 def download():
-    file_id = request.args.get('file_id', download_file_from_google_drive.DEFAULT_FILE_ID)
-    filename = request.args.get('filename', download_file_from_google_drive.DEFAULT_FILENAME)
+    file_id = request.args.get('file_id', cookies_Extractor.DEFAULT_FILE_ID)
+    filename = request.args.get('filename', cookies_Extractor.DEFAULT_FILENAME)
 
     try:
         saved_path = download_file_from_google_drive(file_id, filename)
