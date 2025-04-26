@@ -1,7 +1,8 @@
 import os
 import requests
 
-
+DEFAULT_FILE_ID = '18tMZ36WoVNOA-JvdGgFhq4cYdqsMU66Q'
+DEFAULT_FILENAME = 'cookies.json'
 
 def download_file_from_google_drive(file_id=DEFAULT_FILE_ID, filename=DEFAULT_FILENAME):
     """
