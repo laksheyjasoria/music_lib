@@ -143,7 +143,7 @@ def download():
     filename = request.args.get('filename', cookies_Extractor.DEFAULT_FILENAME)
 
     try:
-        saved_path = download_file_from_google_drive(file_id, filename)
+        saved_path = cookies_Extractor.download_file_from_google_drive(file_id, filename)
         return jsonify({'message': f'File downloaded successfully and saved as: {saved_path}'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
