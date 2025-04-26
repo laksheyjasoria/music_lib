@@ -11,6 +11,7 @@ import re
 import audio
 import audioV2
 import utils
+import cookies_Extractor
 from itertools import chain
 
 app = Flask(__name__)
@@ -135,6 +136,17 @@ def get_trending_music():
         last_trending_fetch = datetime.datetime.now()
 
     return jsonify({"trending_music": cached_trending_music})
+
+@app.route('/download', methods=['GET'])
+def download():
+    file_id = request.args.get('file_id', DEFAULT_FILE_ID)
+    filename = request.args.get('filename', DEFAULT_FILENAME)
+
+    try:
+        saved_path = cookies_Extractor.download_file_from_google_drive(file_id, filename)
+        return jsonify({'message': f'File downloaded successfully and saved as: {saved_path}'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route("/get_most_played_songs", methods=["GET"])
 def get_most_played_songs():
