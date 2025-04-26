@@ -11,7 +11,7 @@ def iso8601_to_seconds(duration):
     return hours * 3600 + minutes * 60 + seconds
 
 
-def convert_cookies_to_ytdlp_format(json_path='cookies.json', output_path='cookies.txt'):
+def convert_cookies_to_ytdlp_format(json_path='/app/cookies.json', output_path='cookies.txt'):
     """
     Converts a JSON cookies file into a Netscape format cookies file for yt-dlp.
     
