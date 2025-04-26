@@ -22,9 +22,6 @@ YT_API_KEY = os.getenv("API_KEY")
 if not YT_API_KEY:
     raise ValueError("API_KEY is not set in environment variables.")
 
-DEFAULT_FILE_ID = '18tMZ36WoVNOA-JvdGgFhq4cYdqsMU66Q'
-DEFAULT_FILENAME = 'cookies.json'
-
 song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
 
 # Global list to store unique search results
@@ -142,11 +139,11 @@ def get_trending_music():
 
 @app.route('/download', methods=['GET'])
 def download():
-    file_id = request.args.get('file_id', DEFAULT_FILE_ID)
-    filename = request.args.get('filename', DEFAULT_FILENAME)
+    file_id = request.args.get('file_id', download_file_from_google_drive.DEFAULT_FILE_ID)
+    filename = request.args.get('filename', download_file_from_google_drive.DEFAULT_FILENAME)
 
     try:
-        saved_path = cookies_Extractor.download_file_from_google_drive(file_id, filename)
+        saved_path = download_file_from_google_drive(file_id, filename)
         return jsonify({'message': f'File downloaded successfully and saved as: {saved_path}'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
