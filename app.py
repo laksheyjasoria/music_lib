@@ -95,7 +95,7 @@ def search_music():
     search_results = []
     for item in details_response.get("items", []):
         video_id = item["id"]
-        video_title = song_extractor.extract_song_name(item["snippet"]["title"])
+        video_title = item["snippet"]["title"]
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
         duration = utils.iso8601_to_seconds(item["contentDetails"]["duration"])
 
@@ -129,7 +129,7 @@ def get_trending_music():
         cached_trending_music = [
             {
                 "videoId": item["id"],
-                "title": song_extractor.extract_song_name(item["snippet"]["title"]),
+                "title": item["snippet"]["title"],
                 "thumbnail": item["snippet"]["thumbnails"]["high"]["url"]
             }
             for item in data["items"]
