@@ -12,6 +12,7 @@ import audio
 import audioV2
 import utils
 import cookies_Extractor
+import song_extractor
 from itertools import chain
 
 app = Flask(__name__)
@@ -94,11 +95,11 @@ def search_music():
     search_results = []
     for item in details_response.get("items", []):
         video_id = item["id"]
-        video_title = item["snippet"]["title"]
+        video_title = song_extractor.extract_song_name(item["snippet"]["title"])
         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
         duration = utils.iso8601_to_seconds(item["contentDetails"]["duration"])
 
-        if duration >= 90 and video_id not in [res["videoId"] for res in unique_search_results]:  # Only include unique entries
+        if duration >= 90 and duration<=1200 video_id not in [res["videoId"] for res in unique_search_results]:  # Only include unique entries
             result = {
                 "videoId": video_id,
                 "title": video_title,
@@ -128,7 +129,7 @@ def get_trending_music():
         cached_trending_music = [
             {
                 "videoId": item["id"],
-                "title": item["snippet"]["title"],
+                "title": song_extractor.extract_song_name(item["snippet"]["title"]),
                 "thumbnail": item["snippet"]["thumbnails"]["high"]["url"]
             }
             for item in data["items"]
