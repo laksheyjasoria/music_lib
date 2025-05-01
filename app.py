@@ -68,9 +68,52 @@ def get_audio():
     )
 
 
+# @app.route("/search_music", methods=["GET"])
+# def search_music():
+#     """Searches for YouTube music videos and returns results with duration > 60s."""
+#     query = request.args.get("query")
+#     if not query:
+#         return jsonify({"error": "Missing 'query' parameter"}), 400
+
+#     # Step 1: Search for videos
+#     search_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=IN&maxResults=50&q={query}&key={YT_API_KEY}"
+#     search_response = requests.get(search_url).json()
+
+#     if "items" not in search_response:
+#         return jsonify({"error": "Failed to fetch search results"}), 500
+
+#     # Extract video IDs
+#     video_ids = [item["id"]["videoId"] for item in search_response.get("items", []) if "videoId" in item["id"]]
+
+#     if not video_ids:
+#         return jsonify({"search_results": []})  # Return empty if no videos found
+
+#     # Step 2: Fetch video durations
+#     details_url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id={','.join(video_ids)}&key={YT_API_KEY}"
+#     details_response = requests.get(details_url).json()
+
+#     search_results = []
+#     for item in details_response.get("items", []):
+#         video_id = item["id"]
+#         video_title = item["snippet"]["title"]
+#         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
+#         duration = utils.iso8601_to_seconds(item["contentDetails"]["duration"])
+
+#         if duration >= 90 and duration<=1200 and video_id not in [res["videoId"] for res in unique_search_results]:  # Only include unique entries
+#             result = {
+#                 "videoId": video_id,
+#                 "title": video_title,
+#                 "thumbnail": thumbnail,
+#                 "duration": duration
+#             }
+#             search_results.append(result)
+#             unique_search_results.append(result)  # Add to global unique list
+
+#     return jsonify({"search_results": search_results})
+
 @app.route("/search_music", methods=["GET"])
 def search_music():
-    """Searches for YouTube music videos and returns results with duration > 60s."""
+    """Search YouTube music videos with enhanced filters and sorting"""
     query = request.args.get("query")
     if not query:
         return jsonify({"error": "Missing 'query' parameter"}), 400
@@ -83,33 +126,57 @@ def search_music():
         return jsonify({"error": "Failed to fetch search results"}), 500
 
     # Extract video IDs
-    video_ids = [item["id"]["videoId"] for item in search_response.get("items", []) if "videoId" in item["id"]]
+    video_ids = [item["id"]["videoId"] for item in search_response.get("items", []) 
+                if "videoId" in item["id"]]
 
     if not video_ids:
-        return jsonify({"search_results": []})  # Return empty if no videos found
+        return jsonify({"search_results": []})
 
-    # Step 2: Fetch video durations
-    details_url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id={','.join(video_ids)}&key={YT_API_KEY}"
+    # Step 2: Fetch detailed video information
+    details_url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id={','.join(video_ids)}&key={YT_API_KEY}"
     details_response = requests.get(details_url).json()
 
-    search_results = []
+    # Filter criteria
+    excluded_keywords = {"lofi", "slowed", "reverb", "nightcore", "chill mix", "study beats","dj remix"}
+    min_duration = 90
+    max_duration = 1200
+
+    filtered_results = []
     for item in details_response.get("items", []):
-        video_id = item["id"]
-        video_title = item["snippet"]["title"]
-        thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
-        duration = utils.iso8601_to_seconds(item["contentDetails"]["duration"])
+        try:
+            video_id = item["id"]
+            video_title = item["snippet"]["title"].lower()
+            duration = utils.iso8601_to_seconds(item["contentDetails"]["duration"])
+            likes = int(item["statistics"].get("likeCount", 0))
 
-        if duration >= 90 and duration<=1200 and video_id not in [res["videoId"] for res in unique_search_results]:  # Only include unique entries
-            result = {
+            # Filter checks
+            if (any(kw in video_title for kw in excluded_keywords) or \
+               not (min_duration <= duration <= max_duration) or \
+               any(res["videoId"] == video_id for res in unique_search_results):
+                continue
+
+            filtered_results.append({
                 "videoId": video_id,
-                "title": video_title,
-                "thumbnail": thumbnail,
-                "duration": duration
-            }
-            search_results.append(result)
-            unique_search_results.append(result)  # Add to global unique list
+                "title": item["snippet"]["title"],
+                "thumbnail": item["snippet"]["thumbnails"]["high"]["url"],
+                "duration": duration,
+                "likes": likes
+            })
 
-    return jsonify({"search_results": search_results})
+        except KeyError as e:
+            app.logger.error(f"Missing key in YouTube response: {str(e)}")
+            continue
+
+    # Sort by likes (descending) and then by duration (ascending)
+    sorted_results = sorted(filtered_results, 
+                          key=lambda x: (-x["likes"], x["duration"]))
+
+    # Update unique results
+    unique_search_results.extend([res for res in sorted_results 
+                                if res["videoId"] not in 
+                                {r["videoId"] for r in unique_search_results}])
+
+    return jsonify({"search_results": sorted_results})
 
 @app.route("/get_trending_music", methods=["GET"])
 def get_trending_music():
