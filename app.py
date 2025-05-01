@@ -119,25 +119,31 @@ def search_music():
         return jsonify({"error": "Missing 'query' parameter"}), 400
 
     # Step 1: Search for videos
-    search_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=IN&maxResults=50&q={query}&key={YT_API_KEY}"
+    search_url = (
+        f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video"
+        f"&videoCategoryId=10&regionCode=IN&maxResults=50&q={query}&key={YT_API_KEY}"
+    )
     search_response = requests.get(search_url).json()
 
     if "items" not in search_response:
         return jsonify({"error": "Failed to fetch search results"}), 500
 
     # Extract video IDs
-    video_ids = [item["id"]["videoId"] for item in search_response.get("items", []) 
-                if "videoId" in item["id"]]
+    video_ids = [item["id"]["videoId"] for item in search_response.get("items", [])
+                 if "videoId" in item.get("id", {})]
 
     if not video_ids:
         return jsonify({"search_results": []})
 
     # Step 2: Fetch detailed video information
-    details_url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id={','.join(video_ids)}&key={YT_API_KEY}"
+    details_url = (
+        f"https://www.googleapis.com/youtube/v3/videos?"
+        f"part=snippet,contentDetails,statistics&id={','.join(video_ids)}&key={YT_API_KEY}"
+    )
     details_response = requests.get(details_url).json()
 
     # Filter criteria
-    excluded_keywords = {"lofi", "slowed", "reverb", "nightcore", "chill mix", "study beats","dj remix"}
+    excluded_keywords = {"lofi", "slowed", "reverb", "nightcore", "chill mix", "study beats"}
     min_duration = 90
     max_duration = 1200
 
@@ -145,19 +151,21 @@ def search_music():
     for item in details_response.get("items", []):
         try:
             video_id = item["id"]
-            video_title = item["snippet"]["title"].lower()
+            video_title = item["snippet"]["title"]
+            title_lower = video_title.lower()
             duration = utils.iso8601_to_seconds(item["contentDetails"]["duration"])
             likes = int(item["statistics"].get("likeCount", 0))
 
-            # Filter checks
-            if (any(kw in video_title for kw in excluded_keywords) or \
-               not (min_duration <= duration <= max_duration) or \
-               any(res["videoId"] == video_id for res in unique_search_results):
+            if (
+                any(kw in title_lower for kw in excluded_keywords)
+                or not (min_duration <= duration <= max_duration)
+                or any(res["videoId"] == video_id for res in unique_search_results)
+            ):
                 continue
 
             filtered_results.append({
                 "videoId": video_id,
-                "title": item["snippet"]["title"],
+                "title": video_title,
                 "thumbnail": item["snippet"]["thumbnails"]["high"]["url"],
                 "duration": duration,
                 "likes": likes
@@ -166,15 +174,20 @@ def search_music():
         except KeyError as e:
             app.logger.error(f"Missing key in YouTube response: {str(e)}")
             continue
+        except Exception as e:
+            app.logger.error(f"Error while processing video data: {str(e)}")
+            continue
 
-    # Sort by likes (descending) and then by duration (ascending)
-    sorted_results = sorted(filtered_results, 
-                          key=lambda x: (-x["likes"], x["duration"]))
+    # Sort by likes descending, then duration ascending
+    sorted_results = sorted(
+        filtered_results,
+        key=lambda x: (-x["likes"], x["duration"])
+    )
 
-    # Update unique results
-    unique_search_results.extend([res for res in sorted_results 
-                                if res["videoId"] not in 
-                                {r["videoId"] for r in unique_search_results}])
+    # Prevent duplicate entries
+    existing_ids = {r["videoId"] for r in unique_search_results}
+    new_results = [res for res in sorted_results if res["videoId"] not in existing_ids]
+    unique_search_results.extend(new_results)
 
     return jsonify({"search_results": sorted_results})
 
