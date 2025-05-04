@@ -3,7 +3,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from config import Config
 from song import Song, SongPool
-from telegram_logger import telegram_handler
+from utils.telegram_logger import telegram_handler
 import logging
 import datetime
 import requests
