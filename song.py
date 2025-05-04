@@ -5,6 +5,23 @@ class Song:
         self.thumbnail = thumbnail
         self.duration = duration
         self.play_count = 0
+        self._validate_input()
+
+    def _validate_input(self):
+        if not self.video_id:
+            raise ValueError("Missing video ID")
+        if not self.title:
+            raise ValueError("Missing title")
+        if not self.thumbnail:
+            raise ValueError("Missing thumbnail")
+
+    def is_valid(self):
+        excluded_keywords = {"lofi", "slowed", "reverb", "nightcore"}
+        return (
+            self.duration >= 90 and
+            self.duration <= 1200 and
+            not any(kw in self.title.lower() for kw in excluded_keywords)
+        )
 
     def increment_play_count(self):
         self.play_count += 1
