@@ -1,3 +1,4 @@
+import threading
 class Song:
     def __init__(self, video_id: str, title: str, thumbnail: str, duration: int = 0):
         self.video_id = video_id
@@ -34,3 +35,16 @@ class Song:
             "duration": self.duration,
             "playCount": self.play_count
         }
+
+
+class SongPool:
+    def __init__(self):
+        self._songs = {}
+        self._lock = threading.Lock()  # <-- Threading used here
+    
+    def add_song(self, song: Song):
+        with self._lock:  # <-- Thread-safe operation
+            if song.video_id not in self._songs:
+                self._songs[song.video_id] = song
+                return True
+            return False
