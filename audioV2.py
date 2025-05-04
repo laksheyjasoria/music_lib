@@ -9,15 +9,6 @@ import utils
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID")
 
-# A small pool of Invidious instances for fallback:
-INVIDIOUS_INSTANCES = [
-    "yewtu.be",
-    "yewtu.cafe",
-    "yewtu.hide.tube",
-    "yewtu.eu"
-]
-# ───────────────────────────────────────────────────────────────────────────────
-
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
@@ -37,27 +28,6 @@ def notify_telegram(message: str):
         log.info("Sent Telegram notification.")
     except Exception as e:
         log.error(f"Failed to send Telegram notification: {e}")
-
-
-def get_audio_url_invidious(video_id: str) -> Optional[str]:
-    """Fallback: try Invidious public API to fetch best audio URL."""
-    for inst in INVIDIOUS_INSTANCES:
-        api = f"https://{inst}/api/v1/videos/{video_id}"
-        try:
-            resp = requests.get(api, timeout=5)
-            resp.raise_for_status()
-            data = resp.json()
-            formats = data.get("formats") or []
-            audio = [f for f in formats if f.get("mimeType", "").startswith("audio/")]
-            if not audio:
-                continue
-            # pick highest bitrate
-            best = max(audio, key=lambda f: f.get("bitrate", 0))
-            return best.get("url")
-        except Exception:
-            log.debug(f"Invidious instance {inst} failed, trying next…")
-    return None
-
 
 def get_audio_url(video_id: str) -> Optional[str]:
     """
@@ -94,16 +64,7 @@ def get_audio_url(video_id: str) -> Optional[str]:
             log.error(f"yt-dlp DownloadError: {msg}")
     except Exception as e:
         log.error(f"Unexpected error in yt-dlp extraction: {e}")
-
-    # 2) Fallback: Invidious
-    log.info("Falling back to Invidious lookup…")
-    inv_url = get_audio_url_invidious(video_id)
-    if inv_url:
-        log.info("Got audio URL via Invidious.")
-        return inv_url
-
-    log.error("Both yt-dlp and Invidious fallbacks failed.")
-    return None
+        return None
 
 # def get_audio_url(video_id: str, cookies_json_path: str = "cookies.json") -> Optional[str]:
 #     """
