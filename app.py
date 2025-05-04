@@ -1,213 +1,184 @@
-# import os
-# import requests
-# import yt_dlp
-# import datetime
-# from flask import Flask, jsonify, request, send_file
-# from flask_cors import CORS
-# from collections import defaultdict
-# from pydub import AudioSegment
-# from io import BytesIO
-# import re
-# import audio
-# import audioV2
-# import utils
-# from itertools import chain
-
-# app = Flask(__name__)
-# CORS(app)
-
-# # Load YouTube API Key
-# YT_API_KEY = os.getenv("API_KEY")
-# if not YT_API_KEY:
-#     raise ValueError("API_KEY is not set in environment variables.")
-
-# song_play_count = defaultdict(lambda: {"count": 0, "title": "", "thumbnail": ""})
-
-# # Global list to store unique search results
-# unique_search_results = []
-
-
-# # Cache for trending music
-# cached_trending_music = []
-# last_trending_fetch = None  # Track last fetch time
-
-
-# @app.route("/get_audio", methods=["GET"])
-# def get_audio():
-#     video_id = request.args.get("videoId")
-#     if not video_id:
-#         return jsonify({"error": "Missing 'videoId' parameter"}), 400
-
-#     # Find the video details in the search_results list
-#     # video_details = next((video for video in unique_search_results if video["videoId"] == video_id), None)
-#     video_details = next((video for video in chain(unique_search_results, cached_trending_music) if video.get("videoId") == video_id),None)
-
-#     if video_details:
-#         song_play_count[video_id].update({
-#             "title": video_details["title"],
-#             "thumbnail": video_details["thumbnail"]
-#         })
-    
-#     song_play_count[video_id]["count"] += 1
-#     # audio_url = audio.get_audio_url(video_id)
-#     audio_url = audioV2.get_audio_url(video_id)
-    
-
-#     if not audio_url:
-#         return jsonify({"error": "Failed to get audio URL"}), 500
-
-#     return jsonify(
-#         {
-#             "videoId": video_id,
-#             "title": song_play_count[video_id]["title"],
-#             "thumbnail": song_play_count[video_id]["thumbnail"],
-#             "audioUrl": audio_url,
-#         }
-#     )
-
-
-# @app.route("/search_music", methods=["GET"])
-# def search_music():
-#     """Searches for YouTube music videos and returns results with duration > 60s."""
-#     query = request.args.get("query")
-#     if not query:
-#         return jsonify({"error": "Missing 'query' parameter"}), 400
-
-#     # Step 1: Search for videos
-#     search_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&regionCode=IN&maxResults=50&q={query}&key={YT_API_KEY}"
-#     search_response = requests.get(search_url).json()
-
-#     if "items" not in search_response:
-#         return jsonify({"error": "Failed to fetch search results"}), 500
-
-#     # Extract video IDs
-#     video_ids = [item["id"]["videoId"] for item in search_response.get("items", []) if "videoId" in item["id"]]
-
-#     if not video_ids:
-#         return jsonify({"search_results": []})  # Return empty if no videos found
-
-#     # Step 2: Fetch video durations
-#     details_url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id={','.join(video_ids)}&key={YT_API_KEY}"
-#     details_response = requests.get(details_url).json()
-
-#     search_results = []
-#     for item in details_response.get("items", []):
-#         video_id = item["id"]
-#         video_title = item["snippet"]["title"]
-#         thumbnail = item["snippet"]["thumbnails"]["high"]["url"]
-#         duration = utils.iso8601_to_seconds(item["contentDetails"]["duration"])
-
-#         if duration >= 90 and video_id not in [res["videoId"] for res in unique_search_results]:  # Only include unique entries
-#             result = {
-#                 "videoId": video_id,
-#                 "title": video_title,
-#                 "thumbnail": thumbnail,
-#                 "duration": duration
-#             }
-#             search_results.append(result)
-#             unique_search_results.append(result)  # Add to global unique list
-
-#     return jsonify({"search_results": search_results})
-
-# @app.route("/get_trending_music", methods=["GET"])
-# def get_trending_music():
-#     """Fetches trending music once per day and caches the results."""
-#     global cached_trending_music, last_trending_fetch
-
-#     # Check if the cache is expired (older than 24 hours)
-#     if not last_trending_fetch or (datetime.datetime.now() - last_trending_fetch).days >= 1:
-#         url = f"https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&videoCategoryId=10&regionCode=IN&maxResults=30&key={YT_API_KEY}"
-#         response = requests.get(url)
-#         data = response.json()
-
-#         if "items" not in data:
-#             return jsonify({"error": "Failed to fetch trending music"}), 500
-
-#         # Update cache
-#         cached_trending_music = [
-#             {
-#                 "videoId": item["id"],
-#                 "title": item["snippet"]["title"],
-#                 "thumbnail": item["snippet"]["thumbnails"]["high"]["url"]
-#             }
-#             for item in data["items"]
-#         ]
-#         last_trending_fetch = datetime.datetime.now()
-
-#     return jsonify({"trending_music": cached_trending_music})
-
-# @app.route("/get_most_played_songs", methods=["GET"])
-# def get_most_played_songs():
-#     sorted_songs = sorted(song_play_count.items(), key=lambda x: x[1]["count"], reverse=True)
-#     most_played_songs = [
-#         {
-#             "videoId": video_id,
-#             "title": data["title"],
-#             "thumbnail": data["thumbnail"],
-#             "play_count": data["count"],
-#         }
-#         for video_id, data in sorted_songs[:50]
-#     ]
-#     return jsonify({"most_played_songs": most_played_songs})
-
-# # Ensure correct port binding for Railway
-# PORT = int(os.getenv("PORT", 5000))
-
-# if __name__ == "__main__":
-#     app.run(host="0.0.0.0", port=PORT, debug=True)
-
-# app.py (updated)
+# app.py
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from services import YouTubeService
-from audio_service import AudioService
-from song import Song
-import os
-from collections import defaultdict
+from config import Config
+from song import Song, SongPool
+from logger import telegram_handler
+import logging
+import datetime
+import requests
+import audioV2
+import utils
+import threading
 
 app = Flask(__name__)
 CORS(app)
 
-# Initialize services
-yt_service = YouTubeService(os.getenv("API_KEY"))
-audio_service = AudioService()
-playback_stats = defaultdict(Song)
+# Configure logging
+app.logger.addHandler(telegram_handler)
+app.logger.setLevel(logging.INFO)
+
+# Initialize song pool and trending cache
+song_pool = SongPool()
+cached_trending_ids = []
+last_trending_fetch = None
 
 @app.route("/get_audio", methods=["GET"])
 def get_audio():
     video_id = request.args.get("videoId")
     if not video_id:
-        return jsonify({"error": "Missing videoId"}), 400
+        return jsonify({"error": "Missing 'videoId' parameter"}), 400
 
-    song = playback_stats.get(video_id)
+    song = song_pool.get_song(video_id)
     if not song:
-        song = yt_service.get_video_details(video_id)
-        if not song:
-            return jsonify({"error": "Invalid videoId"}), 404
-        playback_stats[video_id] = song
+        return jsonify({"error": "Song not found"}), 404
+
+    # Fetch audio URL if not already cached
+    if not song.audio_url:
+        try:
+            audio_url = audioV2.get_audio_url(video_id)
+            if not audio_url:
+                raise ValueError("Failed to get audio URL")
+            song.update_audio_url(audio_url)
+        except Exception as e:
+            app.logger.error(f"Audio fetch failed for {video_id}: {str(e)}")
+            return jsonify({"error": str(e)}), 500
 
     song.increment_play_count()
-    audio_url = audio_service.get_audio_url(video_id)
-    
-    return jsonify({
-        **song.to_dict(),
-        "audioUrl": audio_url
-    }) if audio_url else jsonify({"error": "Failed to get audio"}), 500
+    return jsonify(song.to_dict())
 
-@app.route("/trending", methods=["GET"])
-def get_trending():
+@app.route("/search_music", methods=["GET"])
+def search_music():
+    query = request.args.get("query")
+    if not query:
+        return jsonify({"error": "Missing 'query' parameter"}), 400
+
     try:
-        trending = yt_service.get_trending()
-        return jsonify([song.to_dict() for song in trending])
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # YouTube API call
+        search_url = f"{Config.YT_API_BASE_URL}/search"
+        params = {
+            "part": "snippet",
+            "type": "video",
+            "videoCategoryId": 10,
+            "regionCode": "IN",
+            "maxResults": 50,
+            "q": query,
+            "key": Config.YT_API_KEY
+        }
+        
+        search_response = requests.get(search_url, params=params)
+        search_response.raise_for_status()
+        search_data = search_response.json()
 
-@app.route("/most_played", methods=["GET"])
-def get_most_played():
-    sorted_songs = sorted(playback_stats.values(), 
+        # Process results
+        video_ids = [item["id"]["videoId"] for item in search_data.get("items", [])
+                    if "videoId" in item.get("id", {})]
+
+        # Get details for found videos
+        details_url = f"{Config.YT_API_BASE_URL}/videos"
+        details_params = {
+            "part": "snippet,contentDetails,statistics",
+            "id": ",".join(video_ids),
+            "key": Config.YT_API_KEY
+        }
+        
+        details_response = requests.get(details_url, params=details_params)
+        details_response.raise_for_status()
+        details_data = details_response.json()
+
+        # Add valid songs to pool
+        new_songs = []
+        for item in details_data.get("items", []):
+            try:
+                video_id = item["id"]
+                if song_pool.get_song(video_id):
+                    continue
+
+                song = Song(
+                    video_id=video_id,
+                    title=item["snippet"]["title"],
+                    thumbnail=item["snippet"]["thumbnails"]["high"]["url"],
+                    duration=utils.iso8601_to_seconds(item["contentDetails"]["duration"])
+                )
+                
+                if song.is_valid() and song_pool.add_song(song):
+                    new_songs.append(song)
+
+            except Exception as e:
+                app.logger.warning(f"Error processing video {video_id}: {str(e)}")
+
+        # Sort by popularity (using likes as proxy)
+        sorted_songs = sorted(new_songs, 
+                            key=lambda s: (-s.popularity, s.duration))
+        
+        return jsonify({
+            "search_results": [s.to_dict() for s in sorted_songs]
+        })
+        
+    except requests.RequestException as e:
+        app.logger.error(f"YouTube API error: {str(e)}")
+        return jsonify({"error": "YouTube API failure"}), 500
+
+@app.route("/get_trending_music", methods=["GET"])
+def get_trending_music():
+    global cached_trending_ids, last_trending_fetch
+    
+    try:
+        if not last_trending_fetch or (datetime.datetime.now() - last_trending_fetch) >= Config.TRENDING_CACHE_TTL:
+            url = f"{Config.YT_API_BASE_URL}/videos"
+            params = {
+                "part": "snippet,contentDetails",
+                "chart": "mostPopular",
+                "videoCategoryId": 10,
+                "regionCode": "IN",
+                "maxResults": Config.MAX_TRENDING_RESULTS,
+                "key": Config.YT_API_KEY
+            }
+            
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+            # Store only video IDs in cache
+            new_trending_ids = [item["id"] for item in data["items"]]
+            
+            # Add new trending songs to pool
+            for item in data["items"]:
+                try:
+                    video_id = item["id"]
+                    if not song_pool.get_song(video_id):
+                        song = Song(
+                            video_id=video_id,
+                            title=item["snippet"]["title"],
+                            thumbnail=item["snippet"]["thumbnails"]["high"]["url"],
+                            duration=utils.iso8601_to_seconds(item["contentDetails"]["duration"])
+                        )
+                        song_pool.add_song(song)
+                except Exception as e:
+                    app.logger.warning(f"Error processing trending video {video_id}: {str(e)}")
+
+            cached_trending_ids = new_trending_ids
+            last_trending_fetch = datetime.datetime.now()
+
+        # Get full details from song pool
+        trending_songs = song_pool.get_songs_by_ids(cached_trending_ids)
+        return jsonify({
+            "trending_music": [s.to_dict() for s in trending_songs]
+        })
+        
+    except requests.RequestException as e:
+        app.logger.error(f"Trending music fetch failed: {str(e)}")
+        return jsonify({"error": "Failed to fetch trending music"}), 500
+
+@app.route("/get_most_played_songs", methods=["GET"])
+def get_most_played_songs():
+    all_songs = song_pool.get_all_songs()
+    sorted_songs = sorted(all_songs, 
                         key=lambda s: s.play_count, 
-                        reverse=True)[:50]
-    return jsonify([song.to_dict() for song in sorted_songs])
+                        reverse=True)[:Config.MAX_PLAY_COUNTS]
+    return jsonify({
+        "most_played_songs": [s.to_dict() for s in sorted_songs]
+    })
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
+    app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
