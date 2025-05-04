@@ -7,7 +7,7 @@ from logger import telegram_handler
 import logging
 import datetime
 import requests
-import audioV2
+import audioV3
 import utils
 import threading
 
@@ -36,7 +36,7 @@ def get_audio():
     # Fetch audio URL if not already cached
     if not song.audio_url:
         try:
-            audio_url = audioV2.get_audio_url(video_id)
+            audio_url = audioV3.get_audio_url(video_id)
             if not audio_url:
                 raise ValueError("Failed to get audio URL")
             song.update_audio_url(audio_url)
