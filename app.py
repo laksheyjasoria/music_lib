@@ -14,6 +14,12 @@ import threading
 app = Flask(__name__)
 CORS(app)
 
+# In app.py after initialization
+app.logger.debug("Debug test (should not appear)")
+app.logger.info("Info test")
+app.logger.warning("Warning test")
+app.logger.error("Error test")
+
 # Configure logging
 app.logger.addHandler(telegram_handler)
 app.logger.setLevel(logging.INFO)
