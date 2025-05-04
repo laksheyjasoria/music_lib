@@ -48,3 +48,6 @@ class SongPool:
                 self._songs[song.video_id] = song
                 return True
             return False
+    def get_song(self, video_id: str):
+        with self._lock:
+            return self._songs.get(video_id)
