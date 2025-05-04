@@ -8,7 +8,7 @@ import logging
 import datetime
 import requests
 import audioV3
-import utils/utils as utils
+import utils
 import threading
 
 app = Flask(__name__)
