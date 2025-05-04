@@ -8,7 +8,7 @@ import logging
 import datetime
 import requests
 import audioV3
-import utils
+import utilsV2
 import threading
 
 app = Flask(__name__)
@@ -104,7 +104,7 @@ def search_music():
                     video_id=video_id,
                     title=item["snippet"]["title"],
                     thumbnail=item["snippet"]["thumbnails"]["high"]["url"],
-                    duration=utils.iso8601_to_seconds(item["contentDetails"]["duration"])
+                    duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
                 )
                 
                 if song.is_valid() and song_pool.add_song(song):
@@ -157,7 +157,7 @@ def get_trending_music():
                             video_id=video_id,
                             title=item["snippet"]["title"],
                             thumbnail=item["snippet"]["thumbnails"]["high"]["url"],
-                            duration=utils.iso8601_to_seconds(item["contentDetails"]["duration"])
+                            duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
                         )
                         song_pool.add_song(song)
                 except Exception as e:
