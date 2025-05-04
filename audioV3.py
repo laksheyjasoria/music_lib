@@ -2,7 +2,7 @@ from config import Config
 from utils.telegram_logger import telegram_handler
 import logging
 import yt_dlp
-import utils
+import utils.util
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class AudioFetcher:
             "noplaylist": True,
             "quiet": True,
             "skip_download": True,
-            "cookiefile": utils.convert_cookies_to_ytdlp_format()
+            "cookiefile": util.convert_cookies_to_ytdlp_format()
         }
 
     def get_audio_url(self, video_id: str) -> str:
