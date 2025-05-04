@@ -186,5 +186,16 @@ def get_most_played_songs():
         "most_played_songs": [s.to_dict() for s in sorted_songs]
     })
 
+@app.route('/download', methods=['GET'])
+def download():
+    file_id = request.args.get('file_id', cookies_Extractor.DEFAULT_FILE_ID)
+    filename = request.args.get('filename', cookies_Extractor.DEFAULT_FILENAME)
+
+    try:
+        saved_path = cookies_Extractor.download_file_from_google_drive(file_id, filename)
+        return jsonify({'message': f'File downloaded successfully and saved as: {saved_path}'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
