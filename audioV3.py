@@ -1,5 +1,5 @@
 from config import Config
-from logger import telegram_handler
+from telegram_logger import telegram_handler
 import logging
 import yt_dlp
 import utils
