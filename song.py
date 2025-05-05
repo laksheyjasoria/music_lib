@@ -72,6 +72,7 @@
 
 import threading
 from typing import Optional, List
+import re
 
 class Song:
     def __init__(self, video_id: str, title: str, thumbnail: str, duration: int = 0):
