@@ -6,6 +6,7 @@ class Song:
         self.thumbnail = thumbnail
         self.duration = duration
         self.play_count = 0
+        self.audio_url = None 
         self._validate_input()
 
     def _validate_input(self):
@@ -43,6 +44,9 @@ class Song:
     def get_all_songs(self):
         with self._lock:
             return list(self._songs.values())
+
+    def update_audio_url(self, url: str):
+        self.audio_url = url
 
 class SongPool:
     def __init__(self):
