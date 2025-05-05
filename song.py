@@ -153,7 +153,7 @@ class Song:
             cleaned_title = cleaned_title.rsplit('|', 1)[0]
             
         # Clean up residual characters and whitespace
-        cleaned_title = re.sub(r'[^\w\s-]', '', cleaned_title)  # Remove special chars
+        # cleaned_title = re.sub(r'[^\w\s-]', '', cleaned_title)  # Remove special chars
         cleaned_title = re.sub(r'\s+', ' ', cleaned_title)      # Collapse whitespace
         return cleaned_title.strip()
 
