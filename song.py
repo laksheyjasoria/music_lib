@@ -35,7 +35,14 @@ class Song:
             "duration": self.duration,
             "playCount": self.play_count
         }
+        
+    def get_songs_by_ids(self, video_ids):
+        with self._lock:
+            return [self._songs[vid] for vid in video_ids if vid in self._songs]
 
+    def get_all_songs(self):
+        with self._lock:
+            return list(self._songs.values())
 
 class SongPool:
     def __init__(self):
