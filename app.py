@@ -95,7 +95,7 @@ def search_music():
                     video_id=video_id,
                     title=item["snippet"]["title"],
                     thumbnail=item["snippet"]["thumbnails"]["high"]["url"],
-                    duration=utils.iso8601_to_seconds(item["contentDetails"]["duration"]),
+                    duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"]),
                     popularity=int(item["statistics"].get("likeCount", 0))
                 )
                 
@@ -144,7 +144,7 @@ def get_trending_music():
                             video_id=video_id,
                             title=item["snippet"]["title"],
                             thumbnail=item["snippet"]["thumbnails"]["high"]["url"],
-                            duration=utils.iso8601_to_seconds(item["contentDetails"]["duration"]),
+                            duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"]),
                             popularity=int(item["statistics"].get("likeCount", 0))
                         )
                         song_pool.add_song(song)
