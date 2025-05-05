@@ -144,7 +144,9 @@ class Song:
         cleaned_title = re.sub(r'\s*[@#]\w+\b', '', cleaned_title)
 
         # remove new/latest WORD song/songs yyyy
-        cleaned_title = re.sub(r"\b(latest|new)\s+\w+(?:\s+\w+)?\s+songs?\s*\{?\d{4}\}?", "", cleaned_title, flags=re.IGNORECASE).strip()
+        # cleaned_title = re.sub(r"\b(latest|new)\s+\w+(?:\s+\w+)?\s+songs?\s*\{?\d{4}\}?", "", cleaned_title, flags=re.IGNORECASE).strip()
+
+        cleaned_title = re.sub(r"\b(?:latest|new)?\s*\w+(?:\s+\w+)?\s+songs?\s*\{?\d{4}\}?","",cleaned_title,flags=re.IGNORECASE).strip()
         
         # Remove years and associated separators (e.g., "- 2023" or "/2022")
         cleaned_title = re.sub(
