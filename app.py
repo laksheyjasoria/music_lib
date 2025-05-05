@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from config import Config
@@ -8,17 +7,11 @@ import logging
 import datetime
 import requests
 import audioV3
-import utilsV2
-import threading
+import utils
+import cookies_Extractor
 
 app = Flask(__name__)
 CORS(app)
-
-# In app.py after initialization
-app.logger.debug("Debug test (should not appear)")
-app.logger.info("Info test")
-app.logger.warning("Warning test")
-app.logger.error("Error test")
 
 # Configure logging
 app.logger.addHandler(telegram_handler)
@@ -39,7 +32,6 @@ def get_audio():
     if not song:
         return jsonify({"error": "Song not found"}), 404
 
-    # Fetch audio URL if not already cached
     if not song.audio_url:
         try:
             audio_url = audioV3.get_audio_url(video_id)
@@ -60,7 +52,6 @@ def search_music():
         return jsonify({"error": "Missing 'query' parameter"}), 400
 
     try:
-        # YouTube API call
         search_url = f"{Config.YT_API_BASE_URL}/search"
         params = {
             "part": "snippet",
@@ -76,11 +67,12 @@ def search_music():
         search_response.raise_for_status()
         search_data = search_response.json()
 
-        # Process results
         video_ids = [item["id"]["videoId"] for item in search_data.get("items", [])
-                    if "videoId" in item.get("id", {})]
+                     if "videoId" in item.get("id", {})]
 
-        # Get details for found videos
+        if not video_ids:
+            return jsonify({"search_results": []})
+
         details_url = f"{Config.YT_API_BASE_URL}/videos"
         details_params = {
             "part": "snippet,contentDetails,statistics",
@@ -92,7 +84,6 @@ def search_music():
         details_response.raise_for_status()
         details_data = details_response.json()
 
-        # Add valid songs to pool
         new_songs = []
         for item in details_data.get("items", []):
             try:
@@ -104,7 +95,8 @@ def search_music():
                     video_id=video_id,
                     title=item["snippet"]["title"],
                     thumbnail=item["snippet"]["thumbnails"]["high"]["url"],
-                    duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
+                    duration=utils.iso8601_to_seconds(item["contentDetails"]["duration"]),
+                    popularity=int(item["statistics"].get("likeCount", 0))
                 )
                 
                 if song.is_valid() and song_pool.add_song(song):
@@ -113,13 +105,10 @@ def search_music():
             except Exception as e:
                 app.logger.warning(f"Error processing video {video_id}: {str(e)}")
 
-        # Sort by popularity (using likes as proxy)
         sorted_songs = sorted(new_songs, 
                             key=lambda s: (-s.popularity, s.duration))
         
-        return jsonify({
-            "search_results": [s.to_dict() for s in sorted_songs]
-        })
+        return jsonify({"search_results": [s.to_dict() for s in sorted_songs]})
         
     except requests.RequestException as e:
         app.logger.error(f"YouTube API error: {str(e)}")
@@ -145,10 +134,8 @@ def get_trending_music():
             response.raise_for_status()
             data = response.json()
 
-            # Store only video IDs in cache
             new_trending_ids = [item["id"] for item in data["items"]]
             
-            # Add new trending songs to pool
             for item in data["items"]:
                 try:
                     video_id = item["id"]
@@ -157,7 +144,8 @@ def get_trending_music():
                             video_id=video_id,
                             title=item["snippet"]["title"],
                             thumbnail=item["snippet"]["thumbnails"]["high"]["url"],
-                            duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
+                            duration=utils.iso8601_to_seconds(item["contentDetails"]["duration"]),
+                            popularity=int(item["statistics"].get("likeCount", 0))
                         )
                         song_pool.add_song(song)
                 except Exception as e:
@@ -166,11 +154,8 @@ def get_trending_music():
             cached_trending_ids = new_trending_ids
             last_trending_fetch = datetime.datetime.now()
 
-        # Get full details from song pool
         trending_songs = song_pool.get_songs_by_ids(cached_trending_ids)
-        return jsonify({
-            "trending_music": [s.to_dict() for s in trending_songs]
-        })
+        return jsonify({"trending_music": [s.to_dict() for s in trending_songs]})
         
     except requests.RequestException as e:
         app.logger.error(f"Trending music fetch failed: {str(e)}")
@@ -182,9 +167,7 @@ def get_most_played_songs():
     sorted_songs = sorted(all_songs, 
                         key=lambda s: s.play_count, 
                         reverse=True)[:Config.MAX_PLAY_COUNTS]
-    return jsonify({
-        "most_played_songs": [s.to_dict() for s in sorted_songs]
-    })
+    return jsonify({"most_played_songs": [s.to_dict() for s in sorted_songs]})
 
 @app.route('/download', methods=['GET'])
 def download():
@@ -193,7 +176,7 @@ def download():
 
     try:
         saved_path = cookies_Extractor.download_file_from_google_drive(file_id, filename)
-        return jsonify({'message': f'File downloaded successfully and saved as: {saved_path}'})
+        return jsonify({'message': f'File downloaded successfully: {saved_path}'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
