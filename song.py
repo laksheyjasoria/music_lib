@@ -76,7 +76,7 @@ from typing import Optional, List
 class Song:
     def __init__(self, video_id: str, title: str, thumbnail: str, duration: int = 0):
         self.video_id = video_id
-        self.title = title
+        self.title = self.title = self.clean_title(title, phrases_to_remove)
         self.thumbnail = thumbnail
         self.duration = duration
         self.play_count = 0
@@ -114,6 +114,48 @@ class Song:
             "playCount": self.play_count,
             "audioUrl": self.audio_url
         }
+
+    def clean_title(self, raw_title: str, phrases: list = None) -> str:
+        """Enhanced title cleaner with configurable phrases"""
+        # Default phrases to remove if none provided
+        default_phrases = [
+            "official video", "lyrics", "video", "hd", "4k", 
+            "remix", "version", "ft.", "feat.", "mp3"
+        ]
+        
+        phrases = phrases or default_phrases
+        cleaned_title = raw_title
+        
+        # Remove phrases (case-insensitive)
+        for phrase in phrases:
+            cleaned_title = re.sub(
+                r'\s*{}\b'.format(re.escape(phrase)),
+                '',
+                cleaned_title,
+                flags=re.IGNORECASE
+            )
+        
+        # Remove components in parentheses/brackets
+        cleaned_title = re.sub(r'[\[\(].*?[\]\)]', '', cleaned_title)
+        
+        # Remove @mentions and #hashtags
+        cleaned_title = re.sub(r'\s*[@#]\w+\b', '', cleaned_title)
+        
+        # Remove years and associated separators (e.g., "- 2023" or "/2022")
+        cleaned_title = re.sub(
+            r'(\s*[-/]?\s*\b(19|20)\d{2}\b)', 
+            '', 
+            cleaned_title
+        )
+        
+        # Remove anything after last pipe character
+        if '|' in cleaned_title:
+            cleaned_title = cleaned_title.rsplit('|', 1)[0]
+            
+        # Clean up residual characters and whitespace
+        cleaned_title = re.sub(r'[^\w\s-]', '', cleaned_title)  # Remove special chars
+        cleaned_title = re.sub(r'\s+', ' ', cleaned_title)      # Collapse whitespace
+        return cleaned_title.strip()
 
 class SongPool:
     def __init__(self):
