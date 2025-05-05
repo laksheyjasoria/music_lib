@@ -76,7 +76,7 @@ from typing import Optional, List
 class Song:
     def __init__(self, video_id: str, title: str, thumbnail: str, duration: int = 0):
         self.video_id = video_id
-        self.title = self.title = self.clean_title(title, phrases_to_remove)
+        self.title = self.title = self.clean_title(title)
         self.thumbnail = thumbnail
         self.duration = duration
         self.play_count = 0
@@ -115,15 +115,14 @@ class Song:
             "audioUrl": self.audio_url
         }
 
-    def clean_title(self, raw_title: str, phrases: list = None) -> str:
+    def clean_title(self, raw_title: str) -> str:
         """Enhanced title cleaner with configurable phrases"""
         # Default phrases to remove if none provided
-        default_phrases = [
+        phrases = [
             "official video", "lyrics", "video", "hd", "4k", 
             "remix", "version", "ft.", "feat.", "mp3"
         ]
-        
-        phrases = phrases or default_phrases
+
         cleaned_title = raw_title
         
         # Remove phrases (case-insensitive)
