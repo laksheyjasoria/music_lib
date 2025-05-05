@@ -70,20 +70,99 @@
 #         with self._lock:
 #             return list(self._songs.values())
 
-import threading
-from typing import Optional, List
+# import threading
+# from typing import Optional, List
+# import re
+
+# _PHRASES = [
+#     r"official\s+(video|song|audio|lyrics?)", 
+#     r"\b(ft\.?|feat\.?|prod\.?|remix|version|mix)\b.*",
+#     r"\b(hd|4k|mp3|viral|lyrical|dance performance)\b",
+#     r"\b(new|latest)\s+(haryanvi|punjabi|rajasthani)\s+songs?\b.*\d{4}",
+#     r"\bvyrl\b",
+#     r"\b\d{4}\b"
+# ]
+
+# # Combined patterns for single-pass removal
+# _REMOVAL_PATTERNS = {
+#     "phrases": re.compile(
+#         "|".join(f"({p})" for p in _PHRASES),
+#         flags=re.IGNORECASE | re.UNICODE
+#     ),
+#     "metadata": re.compile(
+#         r"""
+#         [\[\(].*?[\]\)]|      # Brackets/parentheses content
+#         [@#]\w+|               # Mentions/hashtags
+#         -\s*\d{4}$|            # Trailing year with hyphen
+#         \s*[|•]\s*.*           # Content after separators
+#         """, 
+#         flags=re.IGNORECASE | re.UNICODE | re.VERBOSE
+#     ),
+#     "cleanup": re.compile(
+#         r"[^\w\u0900-\u097F\u0A00-\u0A7F\s.,!&+'?-]",  # Allow common punctuation
+#         flags=re.UNICODE
+#     )
+# }
+
+# _TRIM_PATTERN = re.compile(
+#     r"^\W+|\W+$",  # Trim leading/trailing non-word chars
+#     flags=re.UNICODE
+# )
+
+# class TitleCleaner:
+#     @staticmethod
+#     def clean_title(raw_title: str) -> str:
+#         """Optimized multilingual title cleaner"""
+#         if not raw_title:
+#             return ""
+
+#         # Phase 1: Remove large chunks
+#         title = _REMOVAL_PATTERNS["phrases"].sub('', raw_title)
+#         title = _REMOVAL_PATTERNS["metadata"].sub('', title)
+        
+#         # Phase 2: Cleanup remaining characters
+#         title = _REMOVAL_PATTERNS["cleanup"].sub('', title)
+        
+#         # Final processing
+#         title = _TRIM_PATTERN.sub('', title)
+#         title = re.sub(r'\s+', ' ', title).strip()
+        
+#         return title or raw_title[:50]  # Fallback to truncated original
+
+
 import re
+from typing import Optional, List
 
 _PHRASES = [
-    r"official\s+(video|song|audio|lyrics?)", 
-    r"\b(ft\.?|feat\.?|prod\.?|remix|version|mix)\b.*",
-    r"\b(hd|4k|mp3|viral|lyrical|dance performance)\b",
-    r"\b(new|latest)\s+(haryanvi|punjabi|rajasthani)\s+songs?\b.*\d{4}",
+    # Official content variants
+    r"official\s+(video|song|audio|lyrics?)",  
+    r"official\s+.*?song\b",
+    
+    # Feature/production tags
+    r"\b(ft\.?|feat\.?|prod\.?|remix|version|mix|dj)\b.*",
+    
+    # Quality/format tags
+    r"\b(hd|4k|mp3|viral|lyrical|dance performance|3d audio|non stop|full video|video song|song promo)\b",
+    
+    # Regional song patterns
+    r"\b(new|latest|best)\s+(haryanvi|punjabi|rajasthani)(\s*&\s*(haryanvi|punjabi|rajasthani))?\s+songs?\b",
+    
+    # Platform references and years
     r"\bvyrl\b",
-    r"\b\d{4}\b"
+    r"\b\d{4}\b",
+    
+    # DJ variations
+    r"\b(d\s?j\.?|dj)\s*song\b",
+    
+    # Common redundant phrases
+    r"\boriginal\s+song\b",
+    r"\bnon\s+stop\s+(haryanvi|punjabi|rajasthani)\b",
+    r"\bdance\s+video\b",
+    r"\bfull\s+video\s+with\s+lyrics\b",
+    r"\bbest\s+song\b",
+    r"\b(new|latest)\s+haryanvi\s*&\s*rajasthani\s+song\b",
 ]
 
-# Combined patterns for single-pass removal
 _REMOVAL_PATTERNS = {
     "phrases": re.compile(
         "|".join(f"({p})" for p in _PHRASES),
@@ -94,7 +173,7 @@ _REMOVAL_PATTERNS = {
         [\[\(].*?[\]\)]|      # Brackets/parentheses content
         [@#]\w+|               # Mentions/hashtags
         -\s*\d{4}$|            # Trailing year with hyphen
-        \s*[|•]\s*.*           # Content after separators
+        \s*[|•.]\s*.*          # Content after separators
         """, 
         flags=re.IGNORECASE | re.UNICODE | re.VERBOSE
     ),
@@ -128,8 +207,6 @@ class TitleCleaner:
         title = re.sub(r'\s+', ' ', title).strip()
         
         return title or raw_title[:50]  # Fallback to truncated original
-
-
 class Song:
     def __init__(self, video_id: str, title: str, thumbnail: str, duration: int = 0):
         self.video_id = video_id
