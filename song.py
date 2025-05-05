@@ -92,7 +92,7 @@ class Song:
             raise ValueError("Missing thumbnail")
 
     def is_valid(self):
-        excluded_keywords = {"lofi", "slowed", "reverb", "nightcore"}
+        excluded_keywords = {"lofi", "slowed", "reverb", "nightcore","remix","dj remix","djremix"}
         return (
             self.duration >= 90 and
             self.duration <= 1200 and
