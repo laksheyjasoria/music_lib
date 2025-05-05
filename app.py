@@ -96,7 +96,7 @@ def search_music():
                 if song_pool.get_song(video_id):
                     continue
 
-                if(utilsV2.is_valid(item["snippet"]["title"])):
+                if(utilsV2.is_valid(item["snippet"]["title"]),utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])):
                     continue
                     
                 song = Song(
