@@ -96,6 +96,9 @@ def search_music():
                 if song_pool.get_song(video_id):
                     continue
 
+                if(utilsV2.is_valid(item["snippet"]["title"])):
+                    continue
+                    
                 song = Song(
                     video_id=video_id,
                     title=item["snippet"]["title"],
