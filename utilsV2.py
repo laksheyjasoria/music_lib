@@ -87,3 +87,8 @@ def convert_to_ytdlp_cookies(input_json):
         cookies_for_ytdlp.append(ytdlp_cookie)
     
     return cookies_for_ytdlp
+    
+def is_valid(title) -> bool:
+        excluded = {"lofi", "slowed", "reverb", "nightcore","remix","dj remix","djremix","d.j remix","d.j. remix","dj mix","djmix","d.j mix","d.j. mix"}
+        t = title.lower()
+        return 90 <= self.duration <= 1200 and not any(k in t for k in excluded)
