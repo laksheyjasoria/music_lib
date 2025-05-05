@@ -142,6 +142,9 @@ class Song:
         
         # Remove @mentions and #hashtags
         cleaned_title = re.sub(r'\s*[@#]\w+\b', '', cleaned_title)
+
+        # remove new/latest WORD song/songs yyyy
+        cleaned_title = re.sub(r"\b(latest|new)\s+\w+(?:\s+\w+)?\s+songs?\s*\{?\d{4}\}?", "", cleaned_title, flags=re.IGNORECASE).strip()
         
         # Remove years and associated separators (e.g., "- 2023" or "/2022")
         cleaned_title = re.sub(
@@ -149,10 +152,21 @@ class Song:
             '', 
             cleaned_title
         )
+
+        # Step 2: Remove characters NOT in Hindi (Unicode), Punjabi (Gurmukhi), English, digits, or common QWERTY symbols
+        cleaned_title = re.sub(
+            r"[^\u0900-\u097F\u0A00-\u0A7F\w\s\-\.,!@#$%^&*()_+=|\\{}\[\]:;\"'<>\?/`~]", 
+            "", 
+            cleaned_title
+        )
+
+        # Step 3: Trim leading/trailing non-word characters (symbols or spaces)
+        cleaned_title = re.sub(r"^[^\w\u0900-\u097F\u0A00-\u0A7F]+|[^\w\u0900-\u097F\u0A00-\u0A7F]+$", "", cleaned_title)
+
         
         # Remove anything after last pipe character
-        if '|' in cleaned_title:
-            cleaned_title = cleaned_title.rsplit('|', 1)[0]
+        # if '|' in cleaned_title:
+        #     cleaned_title = cleaned_title.rsplit('|', 1)[0]
             
         # Clean up residual characters and whitespace
         # cleaned_title = re.sub(r'[^\w\s-]', '', cleaned_title)  # Remove special chars
