@@ -95,15 +95,16 @@ def search_music():
                 video_id = item["id"]
                 if song_pool.get_song(video_id):
                     continue
-
-                if(utilsV2.is_valid(item["snippet"]["title"]),utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])):
+                title=item["snippet"]["title"]
+                duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
+                if(utilsV2.is_valid(title,duration)):
                     continue
                     
                 song = Song(
                     video_id=video_id,
-                    title=item["snippet"]["title"],
+                    title=title,
                     thumbnail=item["snippet"]["thumbnails"]["high"]["url"],
-                    duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
+                    duration=duration
                 )
 
                 if song.is_valid() and song_pool.add_song(song):
