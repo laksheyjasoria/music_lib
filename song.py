@@ -74,10 +74,66 @@ import threading
 from typing import Optional, List
 import re
 
+_PHRASES = [
+    r"official\s+(video|song|audio|lyrics?)", 
+    r"\b(ft\.?|feat\.?|prod\.?|remix|version|mix)\b.*",
+    r"\b(hd|4k|mp3|viral|lyrical|dance performance)\b",
+    r"\b(new|latest)\s+(haryanvi|punjabi|rajasthani)\s+songs?\b.*\d{4}",
+    r"\bvyrl\b",
+    r"\b\d{4}\b"
+]
+
+# Combined patterns for single-pass removal
+_REMOVAL_PATTERNS = {
+    "phrases": re.compile(
+        "|".join(f"({p})" for p in _PHRASES),
+        flags=re.IGNORECASE | re.UNICODE
+    ),
+    "metadata": re.compile(
+        r"""
+        [\[\(].*?[\]\)]|      # Brackets/parentheses content
+        [@#]\w+|               # Mentions/hashtags
+        -\s*\d{4}$|            # Trailing year with hyphen
+        \s*[|•]\s*.*           # Content after separators
+        """, 
+        flags=re.IGNORECASE | re.UNICODE | re.VERBOSE
+    ),
+    "cleanup": re.compile(
+        r"[^\w\u0900-\u097F\u0A00-\u0A7F\s.,!&+'?-]",  # Allow common punctuation
+        flags=re.UNICODE
+    )
+}
+
+_TRIM_PATTERN = re.compile(
+    r"^\W+|\W+$",  # Trim leading/trailing non-word chars
+    flags=re.UNICODE
+)
+
+class TitleCleaner:
+    @staticmethod
+    def clean_title(raw_title: str) -> str:
+        """Optimized multilingual title cleaner"""
+        if not raw_title:
+            return ""
+
+        # Phase 1: Remove large chunks
+        title = _REMOVAL_PATTERNS["phrases"].sub('', raw_title)
+        title = _REMOVAL_PATTERNS["metadata"].sub('', title)
+        
+        # Phase 2: Cleanup remaining characters
+        title = _REMOVAL_PATTERNS["cleanup"].sub('', title)
+        
+        # Final processing
+        title = _TRIM_PATTERN.sub('', title)
+        title = re.sub(r'\s+', ' ', title).strip()
+        
+        return title or raw_title[:50]  # Fallback to truncated original
+
+
 class Song:
     def __init__(self, video_id: str, title: str, thumbnail: str, duration: int = 0):
         self.video_id = video_id
-        self.title = self.title = self.clean_title(title)
+        self.title = TitleCleaner.clean_title(title)
         self.thumbnail = thumbnail
         self.duration = duration
         self.play_count = 0
@@ -116,64 +172,64 @@ class Song:
             "audioUrl": self.audio_url
         }
 
-    def clean_title(self, raw_title: str) -> str:
-        """Enhanced title cleaner with configurable phrases"""
-        # Default phrases to remove if none provided
-        phrases = [
-            "official video", "lyrics", "video", "hd", "4k", 
-            "remix", "version", "ft.", "feat.", "mp3", "official song","official songs","full","full song","full songs","viral song","lyrical song","dance performance","dj viral song","new haryanvi songs haryanavi","haryanve songs haryanavi","new song of","new haryanvi & rajasthani song"
-        ]
+    # def clean_title(self, raw_title: str) -> str:
+    #     """Enhanced title cleaner with configurable phrases"""
+    #     # Default phrases to remove if none provided
+    #     phrases = [
+    #         "official video", "lyrics", "video", "hd", "4k", 
+    #         "remix", "version", "ft.", "feat.", "mp3", "official song","official songs","full","full song","full songs","viral song","lyrical song","dance performance","dj viral song","Haryanvi Song","new haryanvi songs haryanavi","new haryanvi songs haryanvi","haryanvi songs haryanavi","new song of","new haryanvi & rajasthani song","viral haryanvi","vyrl haryanvi"
+    #     ]
 
 
 
-        cleaned_title = raw_title
+    #     cleaned_title = raw_title
         
-        # Remove phrases (case-insensitive)
-        for phrase in phrases:
-            cleaned_title = re.sub(
-                r'\s*{}\b'.format(re.escape(phrase)),
-                '',
-                cleaned_title,
-                flags=re.IGNORECASE
-            )
+    #     # Remove phrases (case-insensitive)
+    #     for phrase in phrases:
+    #         cleaned_title = re.sub(
+    #             r'\s*{}\b'.format(re.escape(phrase)),
+    #             '',
+    #             cleaned_title,
+    #             flags=re.IGNORECASE
+    #         )
         
-        # Remove components in parentheses/brackets
-        cleaned_title = re.sub(r'[\[\(].*?[\]\)]', '', cleaned_title)
+    #     # Remove components in parentheses/brackets
+    #     cleaned_title = re.sub(r'[\[\(].*?[\]\)]', '', cleaned_title)
         
-        # Remove @mentions and #hashtags
-        cleaned_title = re.sub(r'\s*[@#]\w+\b', '', cleaned_title)
+    #     # Remove @mentions and #hashtags
+    #     cleaned_title = re.sub(r'\s*[@#]\w+\b', '', cleaned_title)
 
-        # remove new/latest WORD song/songs yyyy
-        # cleaned_title = re.sub(r"\b(latest|new)\s+\w+(?:\s+\w+)?\s+songs?\s*\{?\d{4}\}?", "", cleaned_title, flags=re.IGNORECASE).strip()
+    #     # remove new/latest WORD song/songs yyyy
+    #     # cleaned_title = re.sub(r"\b(latest|new)\s+\w+(?:\s+\w+)?\s+songs?\s*\{?\d{4}\}?", "", cleaned_title, flags=re.IGNORECASE).strip()
 
-        cleaned_title = re.sub(r"\b(?:latest|new)?\s*\w+(?:\s+\w+)?\s+songs?\s*\{?\d{4}\}?","",cleaned_title,flags=re.IGNORECASE).strip()
+    #     cleaned_title = re.sub(r"\b(?:latest|new)?\s*\w+(?:\s+\w+)?\s+songs?\s*\{?\d{4}\}?","",cleaned_title,flags=re.IGNORECASE).strip()
         
-        # Remove years and associated separators (e.g., "- 2023" or "/2022")
-        cleaned_title = re.sub(
-            r'(\s*[-/]?\s*\b(19|20)\d{2}\b)', 
-            '', 
-            cleaned_title
-        )
+    #     # Remove years and associated separators (e.g., "- 2023" or "/2022")
+    #     cleaned_title = re.sub(
+    #         r'(\s*[-/]?\s*\b(19|20)\d{2}\b)', 
+    #         '', 
+    #         cleaned_title
+    #     )
 
-        # Step 2: Remove characters NOT in Hindi (Unicode), Punjabi (Gurmukhi), English, digits, or common QWERTY symbols
-        cleaned_title = re.sub(
-            r"[^\u0900-\u097F\u0A00-\u0A7F\w\s\-\.,!@#$%^&*()_+=|\\{}\[\]:;\"'<>\?/`~]", 
-            "", 
-            cleaned_title
-        )
+    #     # Step 2: Remove characters NOT in Hindi (Unicode), Punjabi (Gurmukhi), English, digits, or common QWERTY symbols
+    #     cleaned_title = re.sub(
+    #         r"[^\u0900-\u097F\u0A00-\u0A7F\w\s\-\.,!@#$%^&*()_+=|\\{}\[\]:;\"'<>\?/`~]", 
+    #         "", 
+    #         cleaned_title
+    #     )
 
-        # Step 3: Trim leading/trailing non-word characters (symbols or spaces)
-        cleaned_title = re.sub(r"^[^\w\u0900-\u097F\u0A00-\u0A7F]+|[^\w\u0900-\u097F\u0A00-\u0A7F]+$", "", cleaned_title)
+    #     # Step 3: Trim leading/trailing non-word characters (symbols or spaces)
+    #     cleaned_title = re.sub(r"^[^\w\u0900-\u097F\u0A00-\u0A7F]+|[^\w\u0900-\u097F\u0A00-\u0A7F]+$", "", cleaned_title)
 
         
-        # Remove anything after last pipe character
-        # if '|' in cleaned_title:
-        #     cleaned_title = cleaned_title.rsplit('|', 1)[0]
+    #     # Remove anything after last pipe character
+    #     # if '|' in cleaned_title:
+    #     #     cleaned_title = cleaned_title.rsplit('|', 1)[0]
             
-        # Clean up residual characters and whitespace
-        # cleaned_title = re.sub(r'[^\w\s-]', '', cleaned_title)  # Remove special chars
-        cleaned_title = re.sub(r'\s+', ' ', cleaned_title)      # Collapse whitespace
-        return cleaned_title.strip()
+    #     # Clean up residual characters and whitespace
+    #     # cleaned_title = re.sub(r'[^\w\s-]', '', cleaned_title)  # Remove special chars
+    #     cleaned_title = re.sub(r'\s+', ' ', cleaned_title)      # Collapse whitespace
+    #     return cleaned_title.strip()
 
 class SongPool:
     def __init__(self):
