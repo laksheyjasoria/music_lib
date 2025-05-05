@@ -1,12 +1,16 @@
 import threading
+from typing import Optional, List
+
 class Song:
-    def __init__(self, video_id: str, title: str, thumbnail: str, duration: int = 0):
+    def __init__(self, video_id: str, title: str, thumbnail: str, 
+                 duration: int = 0, popularity: int = 0):
         self.video_id = video_id
         self.title = title
         self.thumbnail = thumbnail
         self.duration = duration
         self.play_count = 0
-        self.audio_url = None 
+        self.audio_url: Optional[str] = None
+        self.popularity = popularity
         self._validate_input()
 
     def _validate_input(self):
@@ -28,37 +32,40 @@ class Song:
     def increment_play_count(self):
         self.play_count += 1
 
+    def update_audio_url(self, url: str):
+        self.audio_url = url
+
     def to_dict(self):
         return {
             "videoId": self.video_id,
             "title": self.title,
             "thumbnail": self.thumbnail,
             "duration": self.duration,
-            "playCount": self.play_count
+            "playCount": self.play_count,
+            "audioUrl": self.audio_url,
+            "popularity": self.popularity
         }
-        
-    def get_songs_by_ids(self, video_ids):
-        with self._lock:
-            return [self._songs[vid] for vid in video_ids if vid in self._songs]
-
-    def get_all_songs(self):
-        with self._lock:
-            return list(self._songs.values())
-
-    def update_audio_url(self, url: str):
-        self.audio_url = url
 
 class SongPool:
     def __init__(self):
         self._songs = {}
-        self._lock = threading.Lock()  # <-- Threading used here
-    
-    def add_song(self, song: Song):
-        with self._lock:  # <-- Thread-safe operation
+        self._lock = threading.Lock()
+
+    def add_song(self, song: Song) -> bool:
+        with self._lock:
             if song.video_id not in self._songs:
                 self._songs[song.video_id] = song
                 return True
             return False
-    def get_song(self, video_id: str):
+
+    def get_song(self, video_id: str) -> Optional[Song]:
         with self._lock:
             return self._songs.get(video_id)
+
+    def get_songs_by_ids(self, video_ids: List[str]) -> List[Song]:
+        with self._lock:
+            return [self._songs[vid] for vid in video_ids if vid in self._songs]
+
+    def get_all_songs(self) -> List[Song]:
+        with self._lock:
+            return list(self._songs.values())
