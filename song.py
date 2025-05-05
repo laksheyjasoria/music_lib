@@ -121,8 +121,10 @@ class Song:
         # Default phrases to remove if none provided
         phrases = [
             "official video", "lyrics", "video", "hd", "4k", 
-            "remix", "version", "ft.", "feat.", "mp3"
+            "remix", "version", "ft.", "feat.", "mp3", "official song","official songs","full","full song","full songs","viral song","lyrical song","dance performance","dj viral song"
         ]
+
+
 
         cleaned_title = raw_title
         
