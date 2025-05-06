@@ -407,7 +407,7 @@ class TitleCleaner:
         """Optimized multilingual title cleaner"""
         if not raw_title:
             return ""
-        logger.warning("Previous : "+raw_title)
+        # logger.warning("Previous : "+raw_title)
         # Phase 1: Remove large chunks
         title = _REMOVAL_PATTERNS["phrases"].sub('', raw_title)
         # Phase 2: Remove metadata, mentions, hashtags, attached symbol words
@@ -419,7 +419,8 @@ class TitleCleaner:
         title = re.sub(r'\s+', ' ', title).strip()
 
         # Fallback to first 50 chars of raw if nothing remains
-        logger.warning("After Clean : "+title or raw_title[:50])
+        # logger.warning("After Clean : "+title or raw_title[:50])
+        logger.warning(f"Clean title – before: “{raw_title}”, after: “{result}”")
         return title or raw_title[:50]
 
 class Song:
