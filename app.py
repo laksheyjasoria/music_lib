@@ -97,7 +97,7 @@ def search_music():
                     continue
                 title=item["snippet"]["title"]
                 duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
-                if(utilsV2.is_valid(title,duration)):
+                if(!utilsV2.is_valid(title,duration)):
                     continue
                     
                 song = Song(
@@ -148,12 +148,17 @@ def get_trending_music():
             for item in data["items"]:
                 try:
                     video_id = item["id"]
+                    title=item["snippet"]["title"]
+                    duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
+                    if(!utilsV2.is_valid(title,duration)):
+                        continue
+                        
                     if not song_pool.get_song(video_id):
                         song = Song(
                             video_id=video_id,
-                            title=item["snippet"]["title"],
+                            title=title,
                             thumbnail=item["snippet"]["thumbnails"]["high"]["url"],
-                            duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
+                            duration=duration
                         )
                         song_pool.add_song(song)
                 except Exception as e:
