@@ -97,7 +97,7 @@ def search_music():
                     continue
                 title=item["snippet"]["title"]
                 duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
-                if(!utilsV2.is_valid(title,duration)):
+                if not utilsV2.is_valid(title,duration):
                     continue
                     
                 song = Song(
@@ -150,7 +150,7 @@ def get_trending_music():
                     video_id = item["id"]
                     title=item["snippet"]["title"]
                     duration=utilsV2.iso8601_to_seconds(item["contentDetails"]["duration"])
-                    if(!utilsV2.is_valid(title,duration)):
+                    if not utilsV2.is_valid(title,duration):
                         continue
                         
                     if not song_pool.get_song(video_id):
