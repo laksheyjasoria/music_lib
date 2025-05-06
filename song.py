@@ -420,7 +420,7 @@ class TitleCleaner:
 
         # Fallback to first 50 chars of raw if nothing remains
         # logger.warning("After Clean : "+title or raw_title[:50])
-        logger.warning(f"Clean title – before: “{raw_title}”, after: “{result}”")
+        logger.warning(f"Clean title – before: “{raw_title}”, after: “{title}”")
         return title or raw_title[:50]
 
 class Song:
