@@ -407,7 +407,7 @@ class TitleCleaner:
         """Optimized multilingual title cleaner"""
         if not raw_title:
             return ""
-        logger.warning("Previous : "+title)
+        logger.warning("Previous : "+raw_title)
         # Phase 1: Remove large chunks
         title = _REMOVAL_PATTERNS["phrases"].sub('', raw_title)
         # Phase 2: Remove metadata, mentions, hashtags, attached symbol words
