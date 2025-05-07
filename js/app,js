@@ -1,0 +1,45 @@
+import * as storage from './storage.js';
+import * as player from './player.js';
+import * as ui from './ui.js';
+import * as timer from './timer.js';
+
+const searchBtn = document.getElementById('searchBtn');
+searchBtn.addEventListener('click', searchMusic);
+document.getElementById('prevBtn').addEventListener('click', player.prevSong);
+document.getElementById('nextBtn').addEventListener('click', player.nextSong);
+document.getElementById('shuffleBtn').addEventListener('click', player.shuffleQueue);
+document.getElementById('repeatBtn').addEventListener('click', player.toggleRepeat);
+document.getElementById('playPauseBtn').addEventListener('click', player.togglePlayPause);
+document.getElementById('favBtn').addEventListener('click', toggleFavorite);
+document.getElementById('favoritesToggleBtn').addEventListener('click', () => ui.refreshFavoritesList());
+document.getElementById('timerToggleBtn').addEventListener('click', timer.showTimerPopup);
+
+async function searchMusic() {
+  const q = document.getElementById('searchQuery').value;
+  if (!q) return;
+  try {
+    const res = await fetch(`${player.BACKEND_URL}/search_music?query=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    storage.saveQueue(data.search_results);
+    storage.setCurrentIndex(0);
+    ui.refreshCarousel(data.search_results);
+    player.fetchAudio(...Object.values(data.search_results[0]));
+    updateRecents(data.search_results[0]);
+  } catch { ui.showError('Search failed'); }
+}
+
+function updateRecents(song) {
+  let rec = storage.getRecentSearches(); rec = rec.filter(s=>s.videoId!==song.videoId);
+  rec.unshift(song); if(rec.length>10) rec.pop(); storage.saveRecentSearches(rec);
+  ui.refreshRecentSearches();
+}
+
+window.onload = () => {
+  timer.initializeTimeWheels(); ui.refreshFavoritesList(); ui.refreshRecentSearches();
+  player.fetchTrendingSongs?.(); player.fetchMostPlayedSongs?.();
+  const queue = storage.getQueue(); if(queue.length) {
+    const idx = storage.getCurrentIndex(); const song = queue[idx] || queue[0];
+    player.fetchAudio(song.videoId, song.title, song.thumbnail);
+    ui.refreshCarousel(queue);
+  }
+};
