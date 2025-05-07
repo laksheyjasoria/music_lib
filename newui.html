@@ -399,6 +399,25 @@ img {
       let selectedSeconds = 0;
       let currentSong = null;
 
+// Modified storage functions
+      function getQueue() {
+        return JSON.parse(localStorage.getItem("queue")) || [];
+      }
+
+      function saveQueue(queue) {
+        localStorage.setItem("queue", JSON.stringify(queue));
+        localStorage.setItem("lastUpdated", Date.now());
+      }
+
+      function getCurrentIndex() {
+        return parseInt(localStorage.getItem("currentIndex"), 10) || 0;
+      }
+
+      function saveCurrentIndex(index) {
+        localStorage.setItem("currentIndex", index);
+      }
+
+
       // Timer Functions
       function initializeTimeWheels() {
         const minutesColumn = document.getElementById("minutesColumn");
@@ -543,15 +562,42 @@ img {
         }
       }
 
-      function updateProgress() {
-        const progressBar = document.getElementById("progressBar");
-        const currentTime = document.getElementById("currentTime");
-        const totalDuration = document.getElementById("totalDuration");
+function updateProgress() {
+  const progressBar = document.getElementById("progressBar");
+  const currentTime = document.getElementById("currentTime");
+  const totalDuration = document.getElementById("totalDuration");
 
-        progressBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-        currentTime.textContent = formatTime(audioPlayer.currentTime);
-        totalDuration.textContent = formatTime(audioPlayer.duration);
-      }
+  // Calculate playback progress
+  const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+  progressBar.value = progress;
+  
+  // 75% tracking logic
+  if (currentSong && progress >= 75 && !currentSong.apiCalled) {
+    // Hit the tracking API
+    fetch(`${BACKEND_URL}/track_play`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        videoId: currentSong.videoId
+      })
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Tracking failed');
+      console.log('Play count updated successfully');
+    })
+    .catch(error => {
+      console.error('Tracking error:', error);
+    })
+    .finally(() => {
+      currentSong.apiCalled = true; // Prevent duplicate calls even if error
+    });
+  }
+
+  currentTime.textContent = formatTime(audioPlayer.currentTime);
+  totalDuration.textContent = formatTime(audioPlayer.duration);
+}
 
       document.getElementById("progressBar").addEventListener("input", function() {
         audioPlayer.currentTime = (this.value / 100) * audioPlayer.duration;
@@ -582,7 +628,21 @@ img {
       audioPlayer.src = data.audioUrl;
       await audioPlayer.play();
 
-      currentSong = { videoId, title, thumbnail };
+      // In fetchAudio function
+          currentSong = { 
+            videoId, 
+            title, 
+            thumbnail,
+            apiCalled: false
+          };
+
+          // Update queue if not already present
+          const queue = getQueue();
+          if (!queue.some(s => s.videoId === videoId)) {
+            const newQueue = [...queue, currentSong];
+            saveQueue(newQueue);
+            saveCurrentIndex(newQueue.length - 1);
+          }
       updateMediaSession(title, thumbnail);
       updateNowPlaying(title, thumbnail);
       updateFavoriteButton();
@@ -601,14 +661,38 @@ img {
     }
   }
 
-      function updateMediaSession(title, thumbnail) {
-        if ("mediaSession" in navigator) {
-          navigator.mediaSession.metadata = new MediaMetadata({
-            title,
-            artwork: [{ src: thumbnail, sizes: "512x512" }]
-          });
-        }
-      }
+function updateMediaSession(title, thumbnail) {
+  if ("mediaSession" in navigator) {
+    // Set metadata
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title,
+      artwork: [{ src: thumbnail, sizes: "512x512" }]
+    });
+
+    // Add action handlers
+    navigator.mediaSession.setActionHandler('previoustrack', prevSong);
+    navigator.mediaSession.setActionHandler('nexttrack', nextSong);
+
+    // Handle seek actions (5-second skip)
+    navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+      audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 5);
+    });
+
+    navigator.mediaSession.setActionHandler('seekforward', (details) => {
+      audioPlayer.currentTime = Math.min(
+        audioPlayer.duration, 
+        audioPlayer.currentTime + 5
+      );
+    });
+
+    // Optional: Disable unsupported actions
+    try {
+      navigator.mediaSession.setActionHandler('seekto', null);
+    } catch (error) {
+      console.log("Seekto handler not supported");
+    }
+  }
+}
 
       function updateNowPlaying(title, thumbnail) {
         document.getElementById("videoResult").innerHTML = `
@@ -633,27 +717,34 @@ img {
           .catch(() => showError("Search failed"));
       }
 
+      // Modified navigation functions
       function prevSong() {
-        let currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
-        if (currentIndex > 0) currentIndex--;
-        sessionStorage.setItem("currentIndex", currentIndex);
-        const song = getQueue()[currentIndex];
-        fetchAudio(song.videoId, song.title, song.thumbnail);
+        const queue = getQueue();
+        let currentIndex = getCurrentIndex();
+        
+        if (currentIndex > 0) {
+          currentIndex--;
+          saveCurrentIndex(currentIndex);
+          const song = queue[currentIndex];
+          fetchAudio(song.videoId, song.title, song.thumbnail);
+        }
       }
 
       function nextSong() {
-        let currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
         const queue = getQueue();
-
+        let currentIndex = getCurrentIndex();
+        
         if (currentIndex < queue.length - 1) {
           currentIndex++;
+          saveCurrentIndex(currentIndex);
+          const song = queue[currentIndex];
+          fetchAudio(song.videoId, song.title, song.thumbnail);
         } else if (isRepeating) {
           currentIndex = 0;
+          saveCurrentIndex(currentIndex);
+          const song = queue[currentIndex];
+          fetchAudio(song.videoId, song.title, song.thumbnail);
         }
-
-        sessionStorage.setItem("currentIndex", currentIndex);
-        const song = queue[currentIndex];
-        fetchAudio(song.videoId, song.title, song.thumbnail);
       }
 
       function shuffleQueue() {
@@ -671,32 +762,65 @@ img {
         document.querySelector("button[onclick='toggleRepeat()']").style.backgroundColor = isRepeating ? "#00ff00" : "#ff0000";
       }
 
+      // Modified refreshCarousel function
       function refreshCarousel(results) {
         const carousel = document.getElementById("carouselContainer");
         carousel.innerHTML = "";
 
-        results.slice(1).forEach(song => {
+        results.slice(1).forEach((song, index) => {
           const item = document.createElement("div");
           item.className = "carousel-item";
           item.innerHTML = `
             <img src="${song.thumbnail}">
             <p>${song.title}</p>`;
-          item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
+            
+          item.onclick = () => {
+            const currentQueue = getQueue();
+            const currentIndex = getCurrentIndex();
+            
+            const newQueue = [
+              ...currentQueue.slice(0, currentIndex + 1),
+              song,
+              ...currentQueue.slice(currentIndex + 1)
+            ];
+            
+            saveQueue(newQueue);
+            saveCurrentIndex(currentIndex + 1);
+            fetchAudio(song.videoId, song.title, song.thumbnail);
+          };
+          
           carousel.appendChild(item);
         });
       }
 
+      // Modified populateSection function
       function populateSection(containerId, items) {
         const container = document.getElementById(containerId);
         container.innerHTML = "";
 
-        items.forEach(song => {
+        items.forEach((song, index) => {
           const item = document.createElement("div");
           item.className = containerId.replace("Container", "-item");
           item.innerHTML = `
             <img src="${song.thumbnail}">
             <p>${song.title}</p>`;
-          item.onclick = () => fetchAudio(song.videoId, song.title, song.thumbnail);
+          
+          item.onclick = () => {
+            const currentQueue = getQueue();
+            const currentIndex = getCurrentIndex();
+            
+            // Insert after current position
+            const newQueue = [
+              ...currentQueue.slice(0, currentIndex + 1),
+              song,
+              ...currentQueue.slice(currentIndex + 1)
+            ];
+            
+            saveQueue(newQueue);
+            saveCurrentIndex(currentIndex + 1);
+            fetchAudio(song.videoId, song.title, song.thumbnail);
+          };
+          
           container.appendChild(item);
         });
       }
@@ -820,6 +944,7 @@ img {
         }
       });
 
+      // Modified window.onload
       window.onload = () => {
         initializeTimeWheels();
         fetchTrendingSongs();
@@ -829,10 +954,12 @@ img {
 
         const queue = getQueue();
         if (queue.length) {
-          const index = parseInt(sessionStorage.getItem("currentIndex"), 10) || 0;
+          const index = getCurrentIndex();
           const song = queue[index];
-          fetchAudio(song.videoId, song.title, song.thumbnail);
-          refreshCarousel(queue);
+          if (song) {
+            fetchAudio(song.videoId, song.title, song.thumbnail);
+            refreshCarousel(queue);
+          }
         }
       };
     </script>
