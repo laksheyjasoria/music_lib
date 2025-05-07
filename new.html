@@ -543,15 +543,42 @@ img {
         }
       }
 
-      function updateProgress() {
-        const progressBar = document.getElementById("progressBar");
-        const currentTime = document.getElementById("currentTime");
-        const totalDuration = document.getElementById("totalDuration");
+function updateProgress() {
+  const progressBar = document.getElementById("progressBar");
+  const currentTime = document.getElementById("currentTime");
+  const totalDuration = document.getElementById("totalDuration");
 
-        progressBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-        currentTime.textContent = formatTime(audioPlayer.currentTime);
-        totalDuration.textContent = formatTime(audioPlayer.duration);
-      }
+  // Calculate playback progress
+  const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+  progressBar.value = progress;
+  
+  // 75% tracking logic
+  if (currentSong && progress >= 75 && !currentSong.apiCalled) {
+    // Hit the tracking API
+    fetch(`${BACKEND_URL}/track_play`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        videoId: currentSong.videoId
+      })
+    })
+    .then(response => {
+      if (!response.ok) throw new Error('Tracking failed');
+      console.log('Play count updated successfully');
+    })
+    .catch(error => {
+      console.error('Tracking error:', error);
+    })
+    .finally(() => {
+      currentSong.apiCalled = true; // Prevent duplicate calls even if error
+    });
+  }
+
+  currentTime.textContent = formatTime(audioPlayer.currentTime);
+  totalDuration.textContent = formatTime(audioPlayer.duration);
+}
 
       document.getElementById("progressBar").addEventListener("input", function() {
         audioPlayer.currentTime = (this.value / 100) * audioPlayer.duration;
@@ -582,7 +609,13 @@ img {
       audioPlayer.src = data.audioUrl;
       await audioPlayer.play();
 
-      currentSong = { videoId, title, thumbnail };
+      // In fetchAudio function
+currentSong = { 
+  videoId, 
+  title, 
+  thumbnail,
+  apiCalled: false // This flag tracks if we've sent the 75% ping
+};
       updateMediaSession(title, thumbnail);
       updateNowPlaying(title, thumbnail);
       updateFavoriteButton();
