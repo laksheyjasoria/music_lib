@@ -243,7 +243,7 @@ def get_audio():
             app.logger.error(f"Audio fetch failed for {video_id}: {e}")
             return jsonify({"error": str(e)}), 500
 
-    song.increment_play_count()
+    # song.increment_play_count()
     return jsonify(song.to_dict())
 
 
