@@ -106,6 +106,24 @@ function updateVolume() {
     audioPlayer.volume = document.getElementById("volumeSlider").value;
 }
 
+// function fetchAudio(videoId, title, thumbnail) {
+//     fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`)
+//         .then(response => response.json())
+//         .then(audioData => {
+//             audioPlayer.src = audioData.audioUrl;
+//             audioPlayer.play();
+//             playPauseBtn.textContent = "⏸️";
+//             document.getElementById("videoResult").innerHTML = `
+//                 <h2>${title}</h2>
+//                 <img src="${thumbnail}" alt="${title}">
+//                 <p>🎵 Now Playing: ${title}</p>
+//             `;
+
+//             // Store the current queue index in session storage
+//             sessionStorage.setItem("currentIndex", getQueue().findIndex(song => song.videoId === videoId));
+//         });
+// }
+
 function fetchAudio(videoId, title, thumbnail) {
     fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`)
         .then(response => response.json())
@@ -113,14 +131,47 @@ function fetchAudio(videoId, title, thumbnail) {
             audioPlayer.src = audioData.audioUrl;
             audioPlayer.play();
             playPauseBtn.textContent = "⏸️";
+
             document.getElementById("videoResult").innerHTML = `
                 <h2>${title}</h2>
                 <img src="${thumbnail}" alt="${title}">
                 <p>🎵 Now Playing: ${title}</p>
             `;
 
+            // Update Media Session API for better notifications and controls
+            if ("mediaSession" in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: title,
+                     artwork: [
+        { src: thumbnail, sizes: "512x512", type: "image/png" }, // Large size
+   
+    ]
+                });
+
+                // Handle media control actions
+                navigator.mediaSession.setActionHandler("play", () => audioPlayer.play());
+                navigator.mediaSession.setActionHandler("pause", () => audioPlayer.pause());
+                navigator.mediaSession.setActionHandler("seekbackward", () => {
+                    audioPlayer.currentTime = Math.max(audioPlayer.currentTime - 10, 0);
+                });
+                navigator.mediaSession.setActionHandler("seekforward", () => {
+                    audioPlayer.currentTime = Math.min(audioPlayer.currentTime + 10, audioPlayer.duration);
+                });
+            }
+
             // Store the current queue index in session storage
             sessionStorage.setItem("currentIndex", getQueue().findIndex(song => song.videoId === videoId));
+
+            // Update playback progress in notification
+            setInterval(() => {
+                if ("mediaSession" in navigator) {
+                    navigator.mediaSession.setPositionState({
+                        duration: audioPlayer.duration,
+                        playbackRate: audioPlayer.playbackRate,
+                        position: audioPlayer.currentTime
+                    });
+                }
+            }, 1000);
         });
 }
 
