@@ -114,6 +114,7 @@ function fetchAudio(videoId, title, thumbnail) {
             audioPlayer.play();
             playPauseBtn.textContent = "⏸️";
             document.getElementById("videoResult").innerHTML = `
+                <h2>${title}</h2>
                 <img src="${thumbnail}" alt="${title}">
                 <p>🎵 Now Playing: ${title}</p>
             `;
