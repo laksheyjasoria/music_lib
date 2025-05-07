@@ -399,25 +399,6 @@ img {
       let selectedSeconds = 0;
       let currentSong = null;
 
-// Modified storage functions
-      function getQueue() {
-        return JSON.parse(localStorage.getItem("queue")) || [];
-      }
-
-      function saveQueue(queue) {
-        localStorage.setItem("queue", JSON.stringify(queue));
-        localStorage.setItem("lastUpdated", Date.now());
-      }
-
-      function getCurrentIndex() {
-        return parseInt(localStorage.getItem("currentIndex"), 10) || 0;
-      }
-
-      function saveCurrentIndex(index) {
-        localStorage.setItem("currentIndex", index);
-      }
-
-
       // Timer Functions
       function initializeTimeWheels() {
         const minutesColumn = document.getElementById("minutesColumn");
@@ -629,20 +610,12 @@ function updateProgress() {
       await audioPlayer.play();
 
       // In fetchAudio function
-          currentSong = { 
-            videoId, 
-            title, 
-            thumbnail,
-            apiCalled: false
-          };
-
-          // Update queue if not already present
-          const queue = getQueue();
-          if (!queue.some(s => s.videoId === videoId)) {
-            const newQueue = [...queue, currentSong];
-            saveQueue(newQueue);
-            saveCurrentIndex(newQueue.length - 1);
-          }
+currentSong = { 
+  videoId, 
+  title, 
+  thumbnail,
+  apiCalled: false // This flag tracks if we've sent the 75% ping
+};
       updateMediaSession(title, thumbnail);
       updateNowPlaying(title, thumbnail);
       updateFavoriteButton();
@@ -717,34 +690,27 @@ function updateMediaSession(title, thumbnail) {
           .catch(() => showError("Search failed"));
       }
 
-      // Modified navigation functions
       function prevSong() {
-        const queue = getQueue();
-        let currentIndex = getCurrentIndex();
-        
-        if (currentIndex > 0) {
-          currentIndex--;
-          saveCurrentIndex(currentIndex);
-          const song = queue[currentIndex];
-          fetchAudio(song.videoId, song.title, song.thumbnail);
-        }
+        let currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
+        if (currentIndex > 0) currentIndex--;
+        sessionStorage.setItem("currentIndex", currentIndex);
+        const song = getQueue()[currentIndex];
+        fetchAudio(song.videoId, song.title, song.thumbnail);
       }
 
       function nextSong() {
+        let currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
         const queue = getQueue();
-        let currentIndex = getCurrentIndex();
-        
+
         if (currentIndex < queue.length - 1) {
           currentIndex++;
-          saveCurrentIndex(currentIndex);
-          const song = queue[currentIndex];
-          fetchAudio(song.videoId, song.title, song.thumbnail);
         } else if (isRepeating) {
           currentIndex = 0;
-          saveCurrentIndex(currentIndex);
-          const song = queue[currentIndex];
-          fetchAudio(song.videoId, song.title, song.thumbnail);
         }
+
+        sessionStorage.setItem("currentIndex", currentIndex);
+        const song = queue[currentIndex];
+        fetchAudio(song.videoId, song.title, song.thumbnail);
       }
 
       function shuffleQueue() {
@@ -762,68 +728,62 @@ function updateMediaSession(title, thumbnail) {
         document.querySelector("button[onclick='toggleRepeat()']").style.backgroundColor = isRepeating ? "#00ff00" : "#ff0000";
       }
 
-      // Modified refreshCarousel function
-      function refreshCarousel(results) {
-        const carousel = document.getElementById("carouselContainer");
-        carousel.innerHTML = "";
+  function refreshCarousel(results) {
+    const carousel = document.getElementById("carouselContainer");
+    carousel.innerHTML = "";
 
-        results.slice(1).forEach((song, index) => {
-          const item = document.createElement("div");
-          item.className = "carousel-item";
-          item.innerHTML = `
-            <img src="${song.thumbnail}">
-            <p>${song.title}</p>`;
-            
-          item.onclick = () => {
-            const currentQueue = getQueue();
-            const currentIndex = getCurrentIndex();
-            
-            const newQueue = [
-              ...currentQueue.slice(0, currentIndex + 1),
-              song,
-              ...currentQueue.slice(currentIndex + 1)
-            ];
-            
-            saveQueue(newQueue);
-            saveCurrentIndex(currentIndex + 1);
-            fetchAudio(song.videoId, song.title, song.thumbnail);
-          };
-          
-          carousel.appendChild(item);
-        });
-      }
+    results.slice(1).forEach((song, index) => {
+      const item = document.createElement("div");
+      item.className = "carousel-item";
+      item.innerHTML = `
+        <img src="${song.thumbnail}">
+        <p>${song.title}</p>`;
+      
+      item.onclick = () => {
+        const queue = getQueue();
+        // Find the actual index in the full results array (index + 1 because we sliced(1))
+        const actualIndex = index + 1;
+        
+        // Update current index and play directly
+        sessionStorage.setItem("currentIndex", actualIndex);
+        fetchAudio(song.videoId, song.title, song.thumbnail);
+      };
+      
+      carousel.appendChild(item);
+    });
+  }
 
-      // Modified populateSection function
-      function populateSection(containerId, items) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = "";
+  // Keep all other functions the same except populateSection
+  function populateSection(containerId, items) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
 
-        items.forEach((song, index) => {
-          const item = document.createElement("div");
-          item.className = containerId.replace("Container", "-item");
-          item.innerHTML = `
-            <img src="${song.thumbnail}">
-            <p>${song.title}</p>`;
-          
-          item.onclick = () => {
-            const currentQueue = getQueue();
-            const currentIndex = getCurrentIndex();
-            
-            // Insert after current position
-            const newQueue = [
-              ...currentQueue.slice(0, currentIndex + 1),
-              song,
-              ...currentQueue.slice(currentIndex + 1)
-            ];
-            
-            saveQueue(newQueue);
-            saveCurrentIndex(currentIndex + 1);
-            fetchAudio(song.videoId, song.title, song.thumbnail);
-          };
-          
-          container.appendChild(item);
-        });
-      }
+    items.forEach((song, index) => {
+      const item = document.createElement("div");
+      item.className = containerId.replace("Container", "-item");
+      item.innerHTML = `
+        <img src="${song.thumbnail}">
+        <p>${song.title}</p>`;
+      
+      item.onclick = () => {
+        const queue = getQueue();
+        const currentIndex = getCurrentIndex();
+        
+        // For other lists: Insert after current position
+        const newQueue = [
+          ...queue.slice(0, currentIndex + 1),
+          song,
+          ...queue.slice(currentIndex + 1)
+        ];
+        
+        saveQueue(newQueue);
+        saveCurrentIndex(currentIndex + 1);
+        fetchAudio(song.videoId, song.title, song.thumbnail);
+      };
+      
+      container.appendChild(item);
+    });
+  }
 
       async function fetchTrendingSongs() {
         try {
@@ -944,7 +904,6 @@ function updateMediaSession(title, thumbnail) {
         }
       });
 
-      // Modified window.onload
       window.onload = () => {
         initializeTimeWheels();
         fetchTrendingSongs();
@@ -954,12 +913,10 @@ function updateMediaSession(title, thumbnail) {
 
         const queue = getQueue();
         if (queue.length) {
-          const index = getCurrentIndex();
+          const index = parseInt(sessionStorage.getItem("currentIndex"), 10) || 0;
           const song = queue[index];
-          if (song) {
-            fetchAudio(song.videoId, song.title, song.thumbnail);
-            refreshCarousel(queue);
-          }
+          fetchAudio(song.videoId, song.title, song.thumbnail);
+          refreshCarousel(queue);
         }
       };
     </script>
