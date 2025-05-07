@@ -1,0 +1,21 @@
+body { font-family: Arial, sans-serif; text-align: center; background-color: #121212; color: white; padding: 20px; }
+input, button { padding: 10px; font-size: 16px; margin: 5px; border-radius: 5px; }
+input { width: 60%; }
+button { cursor: pointer; background-color: #ff0000; color: white; border: none; transition: 0.3s; }
+button:hover { background-color: #cc0000; }
+.video-container { margin-top: 20px; }
+img { width: 300px; aspect-ratio: 16/9; object-fit: cover; border-radius: 10px; margin: 10px auto; display: block; }
+.controls { display: flex; justify-content: center; align-items: center; margin-top: 10px; gap: 10px; }
+.progress-container { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
+.progress-bar { width: 60%; }
+.time { font-size: 14px; }
+.error { color: red; margin-top: 20px; }
+.carousel, .trending, .most-played, .favorites-list, .recent-searches { display: flex; overflow-x: auto; gap: 10px; padding: 10px; margin-top: 20px; scrollbar-width: none; }
+.carousel-item, .trending-item, .mostPlayed-item, .favorite-item, .search-item { cursor: pointer; width: 120px; flex-shrink: 0; text-align: center; background: #333; padding: 5px; border-radius: 8px; color: white; }
+.carousel-item img, .trending-item img, .mostPlayed-item img, .favorite-item img, .search-item img { width: 100px; border-radius: 8px; }
+.heart-icon { width: 32px; height: 32px; fill: transparent; stroke: #ff0000; stroke-width: 2px; transition: all 0.3s; }
+.heart-icon.favorited { fill: #ff0000; stroke: #ff0000; filter: drop-shadow(0 0 2px #ff0000); }
+.sleep-timer-btn, .favorites-toggle { position: fixed; bottom: 20px; right: 20px; background: #ff4444; padding: 10px 20px; border-radius: 25px; cursor: pointer; z-index: 1000; }
+.favorites-toggle { bottom: 80px; }
+.timer-popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #333; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.5); z-index: 1001; color: white; width: 400px; }
+.notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #ff4444; color: white; padding: 10px 20px; border-radius: 25px; display: none; z-index: 1002; }
