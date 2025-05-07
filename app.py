@@ -319,6 +319,27 @@ def search_music():
         app.logger.error(f"YouTube API error: {e}")
         return jsonify({"error": "YouTube API failure"}), 500
 
+@app.route("/track_play", methods=["POST"])
+def track_play():
+    video_id = request.json.get("videoId")
+    if not video_id:
+        return jsonify({"error": "Missing videoId in request body"}), 400
+    
+    song = song_pool.get_song(video_id)
+    if not song:
+        return jsonify({"error": "Song not found"}), 404
+    
+    try:
+        song.increment_play_count()
+        return jsonify({
+            "status": "success",
+            "videoId": video_id,
+            "newCount": song.play_count
+        })
+    except Exception as e:
+        app.logger.error(f"Count increment failed for {video_id}: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
 
 @app.route("/get_trending_music", methods=["GET"])
 def get_trending_music():
