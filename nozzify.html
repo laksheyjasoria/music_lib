@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="logonew.png" />
+  <title>Nozzify</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <h1>Nozzify</h1>
+
+  <!-- Search Bar -->
+  <input type="text" id="searchQuery" placeholder="Enter song name..." />
+  <button id="searchBtn">Search</button>
+
+  <!-- Now Playing -->
+  <div id="videoResult" class="video-container"></div>
+  <div class="progress-container">
+    <span id="currentTime" class="time">0:00</span>
+    <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" />
+    <span id="totalDuration" class="time">0:00</span>
+    <button class="favorite-btn" id="favBtn">
+      <svg class="heart-icon" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    </button>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button id="shuffleBtn">🔀</button>
+    <button id="prevBtn">⏮️</button>
+    <button id="playPauseBtn">▶️</button>
+    <button id="nextBtn">⏭️</button>
+    <button id="repeatBtn">🔁</button>
+  </div>
+
+  <!-- Sleep Timer Popup -->
+  <div class="sleep-timer-btn" id="timerToggleBtn">⏱</div>
+  <div class="timer-popup" id="timerPopup"></div>
+
+  <!-- Favorites and Lists -->
+  <button class="favorites-toggle" id="favoritesToggleBtn">❤️</button>
+  <div class="favorites-section" id="favoritesSection"></div>
+  <div id="carouselContainer" class="carousel"></div>
+  <div id="trendingContainer" class="trending"></div>
+  <div id="mostPlayedContainer" class="most-played"></div>
+  <div id="recentSearchesContainer" class="recent-searches"></div>
+
+  <p id="errorMessage" class="error"></p>
+  <div class="notification" id="notification"></div>
+
+  <audio id="audioPlayer"></audio>
+  
+  <!-- Module scripts -->
+  <script type="module" src="js/storage.js"></script>
+  <script type="module" src="js/player.js"></script>
+  <script type="module" src="js/ui.js"></script>
+  <script type="module" src="js/timer.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
