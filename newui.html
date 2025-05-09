@@ -480,7 +480,9 @@ async function playDirect(videoId) {
     }
 
     try {
-        const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
+        // const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
+      
+        const shareUrl = `${window.location.origin}/newui.html/play/${currentSong.videoId}`;
         
         // Web Share API for mobile devices
         if (navigator.share) {
