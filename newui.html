@@ -406,6 +406,7 @@ const APP_URL = window.location.origin;
 // Add this function
 function handleDirectPlay() {
     const path = window.location.pathname;
+    console.log(path)
     if (path.startsWith('/play/')) {
         const videoId = path.split('/play/')[1];
         playDirect(videoId);
@@ -480,9 +481,9 @@ async function playDirect(videoId) {
     }
 
     try {
-        const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
+        // const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
       
-        // const shareUrl = `${window.location.origin}/newui.html/play/${currentSong.videoId}`;
+        const shareUrl = `${window.location.origin}/newui.html/play/${currentSong.videoId}`;
         
         // Web Share API for mobile devices
         if (navigator.share) {
