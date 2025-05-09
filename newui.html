@@ -404,12 +404,11 @@ img {
 const APP_URL = window.location.origin;
 
 // Add this function
-function handleDirectPlay() {
-    const path = window.location.pathname;
-    console.log(path)
+async function handleDirectPlay() {
+    const path = window.location.hash ? window.location.hash.substr(1) : window.location.pathname;
     if (path.startsWith('/play/')) {
         const videoId = path.split('/play/')[1];
-        playDirect(videoId);
+        await playDirect(videoId);
     }
 }
 
