@@ -458,7 +458,7 @@ img {
     }
 }
 
-      document.getElementById('shareBtn').addEventListener('click', async () => {
+  document.getElementById('shareBtn').addEventListener('click', async () => {
     const queue = getQueue();
     const currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
     const currentSong = queue[currentIndex];
@@ -468,9 +468,25 @@ img {
         return;
     }
 
+    const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
+    const imageUrl = currentSong.thumbnail; // e.g., full URL to the image
+
     try {
-        const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
-        if (navigator.share) {
+        // Fetch and convert image to File
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'cover.jpg', { type: blob.type });
+
+        // Check if image sharing is supported
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                title: `Listen to ${currentSong.title} on Nozzify`,
+                text: `Check out this song: ${currentSong.title}`,
+                url: shareUrl,
+                files: [file]
+            });
+        } else if (navigator.share) {
+            // Fallback to sharing only title + URL
             await navigator.share({
                 title: `Listen to ${currentSong.title} on Nozzify`,
                 url: shareUrl
@@ -480,9 +496,8 @@ img {
             alert('Song link copied to clipboard!');
         }
     } catch (error) {
-        if (error.name !== 'AbortError') {
-            alert('Link copied to clipboard!');
-        }
+        console.error('Sharing failed', error);
+        alert('Sharing failed or not supported.');
     }
 });
 
