@@ -399,6 +399,49 @@ img {
       let selectedMinutes = 0;
       let selectedSeconds = 0;
       let currentSong = null;
+//this functionality for playing sharing song
+      // Add this at the top with other constants
+const APP_URL = window.location.origin;
+
+// Add this function
+function handleDirectPlay() {
+    const path = window.location.pathname;
+    if (path.startsWith('/play/')) {
+        const videoId = path.split('/play/')[1];
+        playDirect(videoId);
+    }
+}
+
+async function playDirect(videoId) {
+    try {
+        // Fetch song details from backend
+        const response = await fetch(`${BACKEND_URL}/get_song_details?videoId=${videoId}`);
+        if (!response.ok) throw new Error('Song not found');
+        
+        const songDetails = await response.json();
+        
+        // Update queue and play
+        const queue = getQueue();
+        const existingIndex = queue.findIndex(song => song.videoId === videoId);
+        
+        if (existingIndex === -1) {
+            queue.unshift(songDetails);
+            saveQueue(queue);
+            sessionStorage.setItem("currentIndex", 0);
+        } else {
+            sessionStorage.setItem("currentIndex", existingIndex);
+        }
+        
+        fetchAudio(videoId, songDetails.title, songDetails.thumbnail);
+        
+        // Update URL without reload
+        window.history.replaceState({}, document.title, APP_URL);
+
+    } catch (error) {
+        showError("Could not load requested song");
+        window.history.replaceState({}, document.title, APP_URL);
+    }
+}
 
       // Timer Functions
       function initializeTimeWheels() {
@@ -985,6 +1028,7 @@ function updateMediaSession(title, thumbnail) {
         fetchMostPlayedSongs();
         setInterval(fetchMostPlayedSongs, 30000);
         refreshFavoritesList();
+        handleDirectPlay(); 
 
         const queue = getQueue();
         if (queue.length) {
