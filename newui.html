@@ -369,6 +369,7 @@ img {
       </div>
     </div>
     <button class="favorites-toggle" id="favoritesToggleBtn" onclick="toggleFavorites()">❤️</button>
+     <button onclick="shareSong()">🔗 Share</button>
     <div class="favorites-section" id="favoritesSection">
       <h2>Your Favorite Songs</h2>
       <div id="favoritesList" class="favorites-list"></div>
@@ -424,6 +425,37 @@ img {
         }
         secondsColumn.innerHTML += '<div style="height: 100px"></div>';
       }
+
+      async function shareSong() {
+    const queue = getQueue();
+    const currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
+    const currentSong = queue[currentIndex];
+    
+    if (!currentSong) {
+        showError("No song playing to share");
+        return;
+    }
+
+    try {
+        const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
+        
+        // Web Share API for mobile devices
+        if (navigator.share) {
+            await navigator.share({
+                title: `Listen to ${currentSong.title} on Nozzify`,
+                url: shareUrl
+            });
+        } else {
+            // Fallback for desktop browsers
+            await navigator.clipboard.writeText(shareUrl);
+            alert('Song link copied to clipboard!');
+        }
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            alert('Link copied to clipboard!');
+        }
+    }
+}
 
       function setupTimeWheels() {
         const hoursColumn = document.getElementById("hoursColumn");
