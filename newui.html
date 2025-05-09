@@ -480,9 +480,9 @@ async function playDirect(videoId) {
     }
 
     try {
-        // const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
+        const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
       
-        const shareUrl = `${window.location.origin}/newui.html/play/${currentSong.videoId}`;
+        // const shareUrl = `${window.location.origin}/newui.html/play/${currentSong.videoId}`;
         
         // Web Share API for mobile devices
         if (navigator.share) {
@@ -512,7 +512,7 @@ async function playDirect(videoId) {
         return;
     }
 
-    const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
+    const shareUrl = `${window.location.origin}/newui.html/play/${currentSong.videoId}`;
     const imageUrl = currentSong.thumbnail; // e.g., full URL to the image
 
     try {
