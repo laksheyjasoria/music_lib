@@ -340,6 +340,10 @@ def track_play():
         app.logger.error(f"Count increment failed for {video_id}: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
+@app.route("/get_all_songs", methods=["GET"])
+def get_all_songs():
+    all_songs = song_pool.get_all_songs()
+    return jsonify([song.to_dict() for song in all_songs])
 
 @app.route("/get_trending_music", methods=["GET"])
 def get_trending_music():
