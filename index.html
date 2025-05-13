@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Add meta tags -->
+<meta name="description" content="Nozzify - Stream and discover music">
+<meta property="og:title" content="Nozzify Music Player">
+<meta property="og:image" content="logonew.png">
     <link rel="icon" type="image/png" href="logonew.png" />
     <title>Nozzify</title>
     <style>
@@ -404,8 +408,9 @@ img {
 const APP_URL = window.location.origin;
 
 // Add this function
+// Update handleDirectPlay
 async function handleDirectPlay() {
-    const path = window.location.hash ? window.location.hash.substr(1) : window.location.pathname;
+    const path = window.location.pathname;
     if (path.startsWith('/play/')) {
         const videoId = path.split('/play/')[1];
         await playDirect(videoId);
@@ -414,6 +419,7 @@ async function handleDirectPlay() {
 
 async function playDirect(videoId) {
     try {
+      showLoader(); // Show loading indicator
         // Fetch song details from backend
         const response = await fetch(`${BACKEND_URL}/get_song_details?videoId=${videoId}`);
         if (!response.ok) throw new Error('Song not found');
@@ -437,9 +443,20 @@ async function playDirect(videoId) {
         // Update URL without reload
         window.history.replaceState({}, document.title, APP_URL);
 
-    } catch (error) {
-        showError("Could not load requested song");
-        window.history.replaceState({}, document.title, APP_URL);
+    // } catch (error) {
+    //     showError("Could not load requested song");
+    //     window.history.replaceState({}, document.title, APP_URL);
+    // }
+         } catch (error) {
+        console.error('Direct play error:', error);
+        showError(`Error: ${error.message}`);
+        // Fallback to search if queue is empty
+        if (getQueue().length === 0) {
+            document.getElementById('searchQuery').value = 'Popular Songs';
+            searchMusic();
+        }
+    } finally {
+        hideLoader(); // Implement this function
     }
 }
 
@@ -480,9 +497,9 @@ async function playDirect(videoId) {
     }
 
     try {
-        // const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
+        const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
       
-        const shareUrl = `${window.location.origin}/newui.html/play/${currentSong.videoId}`;
+        // const shareUrl = `${window.location.origin}/newui.html/play/${currentSong.videoId}`;
         
         // Web Share API for mobile devices
         if (navigator.share) {
@@ -739,6 +756,13 @@ currentSong = {
       updateMediaSession(title, thumbnail);
       updateNowPlaying(title, thumbnail);
       updateFavoriteButton();
+              const playPromise = audioPlayer.play();
+        if (playPromise !== undefined) {
+            await playPromise.catch(error => {
+                showNotification("Click anywhere to start playback");
+                document.body.addEventListener('click', () => audioPlayer.play(), { once: true });
+            });
+        }
 
     } catch (error) {
       if (retryCount < 1) {
@@ -753,6 +777,13 @@ currentSong = {
       nextSong();
     }
   }
+
+      function showLoader() {
+    document.getElementById('videoResult').innerHTML = `
+        <div class="loader"></div>
+        <p>Loading...</p>
+    `;
+}
 
 function updateMediaSession(title, thumbnail) {
   if ("mediaSession" in navigator) {
