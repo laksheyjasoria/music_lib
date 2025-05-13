@@ -419,11 +419,15 @@ const APP_URL = window.location.origin;
 
 // Add this function
 // Update handleDirectPlay
-async function handleDirectPlay() {
+function handleDirectPlay() {
     const path = window.location.pathname;
-    if (path.startsWith('/play/')) {
-        const videoId = path.split('/play/')[1];
-        await playDirect(videoId);
+    const videoIdMatch = path.match(/\/play\/([a-zA-Z0-9_-]{11})/);
+    
+    if (videoIdMatch) {
+        const videoId = videoIdMatch[1];
+        playDirect(videoId);
+        // Clean up URL after handling
+        window.history.replaceState({}, document.title, window.location.origin);
     }
 }
 
@@ -529,46 +533,36 @@ async function playDirect(videoId) {
     }
 }
 
-  document.getElementById('shareBtn').addEventListener('click', async () => {
+document.getElementById('shareBtn').addEventListener('click', async () => {
     const queue = getQueue();
     const currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
     const currentSong = queue[currentIndex];
 
     if (!currentSong) {
-        alert("No song playing to share");
+        showNotification("No song playing to share");
         return;
     }
 
-    const shareUrl = `${window.location.origin}/newui.html/play/${currentSong.videoId}`;
-    const imageUrl = currentSong.thumbnail; // e.g., full URL to the image
-
     try {
-        // Fetch and convert image to File
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        const file = new File([blob], 'cover.jpg', { type: blob.type });
+        const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
+        const shareData = {
+            title: `Listen to ${currentSong.title} on Nozzify`,
+            text: `Check out this song: ${currentSong.title}`,
+            url: shareUrl
+        };
 
-        // Check if image sharing is supported
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                title: `Listen to ${currentSong.title} on Nozzify`,
-                text: `Check out this song: ${currentSong.title}`,
-                url: shareUrl,
-                files: [file]
-            });
-        } else if (navigator.share) {
-            // Fallback to sharing only title + URL
-            await navigator.share({
-                title: `Listen to ${currentSong.title} on Nozzify`,
-                url: shareUrl
-            });
+        if (navigator.share) {
+            await navigator.share(shareData);
         } else {
+            // Fallback for desktop browsers
             await navigator.clipboard.writeText(shareUrl);
-            alert('Song link copied to clipboard!');
+            showNotification("Link copied to clipboard!");
         }
     } catch (error) {
-        console.error('Sharing failed', error);
-        alert('Sharing failed or not supported.');
+        console.error('Sharing failed:', error);
+        if (error.name !== 'AbortError') {
+            showNotification("Sharing not supported - URL copied");
+        }
     }
 });
 
@@ -1071,7 +1065,7 @@ function updateMediaSession(title, thumbnail) {
         fetchMostPlayedSongs();
         setInterval(fetchMostPlayedSongs, 30000);
         refreshFavoritesList();
-        handleDirectPlay(); 
+         handleDirectPlay();
 
         const queue = getQueue();
         if (queue.length) {
@@ -1080,6 +1074,12 @@ function updateMediaSession(title, thumbnail) {
           fetchAudio(song.videoId, song.title, song.thumbnail);
           refreshCarousel(queue);
         }
+
+        const pathSegments = window.location.pathname.split('/');
+if (pathSegments.includes('play')) {
+    const videoId = pathSegments[pathSegments.indexOf('play') + 1];
+    playDirect(videoId);
+}
       };
     </script>
   </body>
