@@ -434,6 +434,23 @@ class Song:
         self.play_count = 0
         self.audio_url: Optional[str] = None
 
+    @classmethod
+    def from_video_id(cls, video_id: str):
+        """Alternative constructor that fetches metadata from audio service"""
+        from services import audioV3  # Import inside method to avoid circular imports
+        
+        # Fetch song details from external service
+        details = audioV3.get_song_details(video_id)
+        if not details:
+            raise ValueError(f"Could not fetch details for video ID: {video_id}")
+            
+        return cls(
+            video_id=video_id,
+            title=details['title'],
+            thumbnail=details['thumbnail'],
+            duration=details.get('duration', 0)
+        )
+
     def is_valid(self) -> bool:
         excluded = {"lofi", "slowed", "reverb", "nightcore"}
         t = self.title.lower()
