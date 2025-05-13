@@ -231,7 +231,10 @@ def get_audio():
 
     song = song_pool.get_song(video_id)
     if not song:
-        return jsonify({"error": "Song not found"}), 404
+       try:
+          song = Song.from_video_id("dQw4w9WgXcQ")
+        except ValueError as e:
+          print(f"Error creating song: {e}")
 
     if not song.audio_url:
         try:
