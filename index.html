@@ -418,59 +418,62 @@ img {
 const APP_URL = window.location.origin;
 
 // Add this function
-// Update handleDirectPlay
+// Enhanced URL handler
 function handleDirectPlay() {
     const path = window.location.pathname;
-    const videoIdMatch = path.match(/\/play\/([a-zA-Z0-9_-]{11})/);
+    const videoIdMatch = path.match(/\/play\/([a-zA-Z0-9_-]{11})(\/|$)/);
     
-    if (videoIdMatch) {
+    if (videoIdMatch && videoIdMatch[1]) {
         const videoId = videoIdMatch[1];
-        playDirect(videoId);
-        // Clean up URL after handling
-        window.history.replaceState({}, document.title, window.location.origin);
+        playDirect(videoId).then(() => {
+            // Only clean URL after successful load
+            window.history.replaceState({}, document.title, window.location.origin);
+        });
     }
 }
 
+// Update the playDirect function with proper error handling
 async function playDirect(videoId) {
     try {
-      showLoader(); // Show loading indicator
-        // Fetch song details from backend
+        showLoader();
+        
+        // First check if already in queue
+        const queue = getQueue();
+        const existingIndex = queue.findIndex(song => song.videoId === videoId);
+        
+        if (existingIndex > -1) {
+            // If found in existing queue, use local data
+            sessionStorage.setItem("currentIndex", existingIndex);
+            const song = queue[existingIndex];
+            await fetchAudio(song.videoId, song.title, song.thumbnail);
+            return;
+        }
+
+        // If not in queue, fetch from backend
         const response = await fetch(`${BACKEND_URL}/get_song_details?videoId=${videoId}`);
         if (!response.ok) throw new Error('Song not found');
         
         const songDetails = await response.json();
+        const newQueue = [songDetails, ...queue];
+        saveQueue(newQueue);
+        sessionStorage.setItem("currentIndex", 0);
         
-        // Update queue and play
-        const queue = getQueue();
-        const existingIndex = queue.findIndex(song => song.videoId === videoId);
+        await fetchAudio(videoId, songDetails.title, songDetails.thumbnail);
         
-        if (existingIndex === -1) {
-            queue.unshift(songDetails);
-            saveQueue(queue);
-            sessionStorage.setItem("currentIndex", 0);
-        } else {
-            sessionStorage.setItem("currentIndex", existingIndex);
-        }
-        
-        fetchAudio(videoId, songDetails.title, songDetails.thumbnail);
-        
-        // Update URL without reload
+        // Update URL after successful load
         window.history.replaceState({}, document.title, APP_URL);
 
-    // } catch (error) {
-    //     showError("Could not load requested song");
-    //     window.history.replaceState({}, document.title, APP_URL);
-    // }
-         } catch (error) {
+    } catch (error) {
         console.error('Direct play error:', error);
         showError(`Error: ${error.message}`);
+        
         // Fallback to search if queue is empty
         if (getQueue().length === 0) {
             document.getElementById('searchQuery').value = 'Popular Songs';
-            searchMusic();
+            await searchMusic();
         }
     } finally {
-        hideLoader(); // Implement this function
+        hideLoader();
     }
 }
 
@@ -739,48 +742,65 @@ function updateProgress() {
         sessionStorage.setItem("queue", JSON.stringify(queue));
       }
 
-  async function fetchAudio(videoId, title, thumbnail, retryCount = 0) {
+ // Update the fetchAudio function with better error recovery
+async function fetchAudio(videoId, title, thumbnail, retryCount = 0) {
     try {
-      const response = await fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`);
-      if (!response.ok) throw new Error('Network error');
+        const response = await fetch(`${BACKEND_URL}/get_audio?videoId=${videoId}`);
+        if (!response.ok) throw new Error('Network error');
 
-      const data = await response.json();
-      if (!data.audioUrl) throw new Error('No audio URL');
+        const data = await response.json();
+        if (!data.audioUrl) throw new Error('No audio URL');
 
-      audioPlayer.src = data.audioUrl;
-      await audioPlayer.play();
+        // Create new audio element to prevent caching issues
+        const newAudio = new Audio(data.audioUrl);
+        newAudio.addEventListener('error', () => {
+            throw new Error('Audio playback error');
+        });
 
-      // In fetchAudio function
-currentSong = { 
-  videoId, 
-  title, 
-  thumbnail,
-  apiCalled: false // This flag tracks if we've sent the 75% ping
-};
-      updateMediaSession(title, thumbnail);
-      updateNowPlaying(title, thumbnail);
-      updateFavoriteButton();
-              const playPromise = audioPlayer.play();
-        if (playPromise !== undefined) {
-            await playPromise.catch(error => {
-                showNotification("Click anywhere to start playback");
-                document.body.addEventListener('click', () => audioPlayer.play(), { once: true });
-            });
-        }
+        // Replace existing audio element
+        const oldAudio = audioPlayer;
+        document.body.appendChild(newAudio);
+        oldAudio.remove();
+        audioPlayer = newAudio;
+        audioPlayer.id = 'audioPlayer';
+        audioPlayer.controls = false;
+
+        // Set up event listeners for new audio element
+        audioPlayer.addEventListener('play', () => {
+            playPauseBtn.textContent = "⏸️";
+        });
+        audioPlayer.addEventListener('pause', () => {
+            playPauseBtn.textContent = "▶️";
+        });
+        audioPlayer.addEventListener('timeupdate', updateProgress);
+        audioPlayer.addEventListener('ended', nextSong);
+
+        await audioPlayer.play();
+        
+        currentSong = { 
+            videoId, 
+            title, 
+            thumbnail,
+            apiCalled: false
+        };
+        
+        updateMediaSession(title, thumbnail);
+        updateNowPlaying(title, thumbnail);
+        updateFavoriteButton();
 
     } catch (error) {
-      if (retryCount < 1) {
-        console.log(`Retrying ${title}...`);
-        showNotification(`Retrying...`);
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 1 second before retry
-        return fetchAudio(videoId, title, thumbnail, retryCount + 1);
-      }
+        console.error('Audio load error:', error);
+        
+        if (retryCount < 2) {
+            showNotification(`Retrying... (${retryCount + 1}/3)`);
+            await new Promise(resolve => setTimeout(resolve, 2000 * (retryCount + 1)));
+            return fetchAudio(videoId, title, thumbnail, retryCount + 1);
+        }
 
-      console.error('Failed to load audio after 2 attempts:', error);
-      showError("Failed to load audio, playing next song");
-      nextSong();
+        showError("Failed to load audio, trying next song");
+        nextSong();
     }
-  }
+}
 
       function showLoader() {
     document.getElementById('videoResult').innerHTML = `
@@ -1059,28 +1079,27 @@ function updateMediaSession(title, thumbnail) {
         }
       });
 
-      window.onload = () => {
-        initializeTimeWheels();
-        fetchTrendingSongs();
-        fetchMostPlayedSongs();
-        setInterval(fetchMostPlayedSongs, 30000);
-        refreshFavoritesList();
-         handleDirectPlay();
-
+window.onload = () => {
+    initializeTimeWheels();
+    fetchTrendingSongs();
+    fetchMostPlayedSongs();
+    setInterval(fetchMostPlayedSongs, 30000);
+    refreshFavoritesList();
+    
+    // First check for direct play URL
+    handleDirectPlay();
+    
+    // If no direct play, resume existing queue
+    if (!window.location.pathname.includes('/play/')) {
         const queue = getQueue();
         if (queue.length) {
-          const index = parseInt(sessionStorage.getItem("currentIndex"), 10) || 0;
-          const song = queue[index];
-          fetchAudio(song.videoId, song.title, song.thumbnail);
-          refreshCarousel(queue);
+            const index = parseInt(sessionStorage.getItem("currentIndex"), 10) || 0;
+            const song = queue[index];
+            fetchAudio(song.videoId, song.title, song.thumbnail);
+            refreshCarousel(queue);
         }
-
-        const pathSegments = window.location.pathname.split('/');
-if (pathSegments.includes('play')) {
-    const videoId = pathSegments[pathSegments.indexOf('play') + 1];
-    playDirect(videoId);
-}
-      };
+    }
+};
     </script>
   </body>
 </html>
