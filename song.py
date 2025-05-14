@@ -440,7 +440,7 @@ class Song:
         import audioV3  # Import inside method to avoid circular imports
         
         # Fetch song details from external service
-        details = audioV3. get_video_info(video_id)
+        details = audioV3.get_video_info(video_id)
         if not details:
             raise ValueError(f"Could not fetch details for video ID: {video_id}")
             
