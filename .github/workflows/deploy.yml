@@ -1,0 +1,22 @@
+name: Redeploy Railway Project
+
+on:
+  workflow_dispatch:  # This allows manual triggering via GitHub UI
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Trigger Railway Redeployment
+        env:
+          RAILWAY_API_TOKEN: 06eed304-5028-40fa-8a39-329bf1a96544
+          PROJECT_ID: 139e1a52-80ae-456d-b78b-05459ee442f6/service/155c2a69-5076-4bc1-a280-f096cd8a9dfc
+        run: |
+          curl -X POST \
+            https://api.railway.app/v1/projects/139e1a52-80ae-456d-b78b-05459ee442f6/service/155c2a69-5076-4bc1-a280-f096cd8a9dfc/deployments \
+            -H "Authorization: Bearer 06eed304-5028-40fa-8a39-329bf1a96544" \
+            -H "Content-Type: application/json"
