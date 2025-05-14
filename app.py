@@ -428,7 +428,13 @@ def refresh():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
+      
+# Example Python (Flask) endpoint
+@app.route('/get_song_details')
+def get_song_details():
+    video_id = request.args.get('videoId')
+    # Add your logic to fetch details from YouTube/your database
+    return jsonify(song_pool.get_song(video_id))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
