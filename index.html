@@ -1063,6 +1063,35 @@ function updateMediaSession(title, thumbnail) {
     }
 }
 
+      async function handleSharedSong() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const videoId = urlParams.get('videoId');
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/get_song_details?videoId=${videoId}`);
+        const songDetails = await response.json();
+        
+        if (!songDetails.videoId) throw new Error('Invalid song');
+        
+        // Clear existing queue and history
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Initialize queue with shared song
+        saveQueue([songDetails]);
+        sessionStorage.setItem("currentIndex", 0);
+        
+        // Fetch and play audio
+        fetchAudio(songDetails.videoId, songDetails.title, songDetails.thumbnail);
+        
+        // Update UI
+        document.getElementById("searchQuery").value = songDetails.title;
+        refreshRelatedSearches([songDetails]);
+        
+    } catch (error) {
+        showError("Failed to load shared song: " + error.message);
+        console.error('Song load error:', error);
+    }
+
       document.addEventListener("keydown", (event) => {
         if (document.activeElement.tagName === "INPUT") return;
 
@@ -1097,12 +1126,7 @@ window.onload = () => {
     handleDirectPlay();
     
     // If no direct play, resume existing queue
-    const urlParams = new URLSearchParams(window.location.search);
-    const videoId = urlParams.get('videoId');
-    
-    if (videoId) {
-        fetchSongDetails(videoId);
-    }
+  handleSharedSong();
 };
     </script>
   </body>
