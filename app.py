@@ -430,7 +430,7 @@ def refresh():
         return jsonify({"error": str(e)}), 500
       
 # Example Python (Flask) endpoint
-@app.route('/get_song_details')
+@app.route('/get_song_details', methods=["GET"])
 def get_song_details():
     video_id = request.args.get('videoId')
     # Add your logic to fetch details from YouTube/your database
