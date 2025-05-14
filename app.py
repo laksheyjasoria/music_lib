@@ -402,15 +402,15 @@ def get_most_played_songs():
     return jsonify({"most_played_songs": [s.to_dict() for s in top]})
 
 
-# @app.route("/download", methods=["GET"])
-# def download():
-#     file_id = request.args.get("file_id", cookies_Extractor.DEFAULT_FILE_ID)
-#     filename = request.args.get("filename", cookies_Extractor.DEFAULT_FILENAME)
-#     try:
-#         path = cookies_Extractor.download_file_from_google_drive(file_id, filename)
-#         return jsonify({"message": f"File downloaded successfully: {path}"})
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
+@app.route("/download", methods=["GET"])
+def download():
+    file_id = request.args.get("file_id", cookies_Extractor.DEFAULT_FILE_ID)
+    filename = request.args.get("filename", cookies_Extractor.DEFAULT_FILENAME)
+    try:
+        path = cookies_Extractor.download_file_from_google_drive(file_id, filename)
+        return jsonify({"message": f"File downloaded successfully: {path}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/refresh", methods=["GET"])
 def refresh():
