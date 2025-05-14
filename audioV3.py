@@ -109,7 +109,7 @@ class AudioFetcher:
             "noplaylist": True,
             "quiet": True,
             "skip_download": True,
-            "cookiefile": utilsV2.convert_cookies_to_ytdlp_format()
+            "cookiefile": "cookies.txt"
         }
 
     def get_video_info(self, video_id: str):
