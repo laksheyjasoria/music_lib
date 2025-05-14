@@ -19,6 +19,31 @@ class AudioFetcher:
             "cookiefile": utilsV2.convert_cookies_to_ytdlp_format()
         }
 
+    def get_video_info(video_id):
+    """
+    Fetches YouTube video metadata using yt-dlp.
+    
+    Args:
+        video_id (str): YouTube video ID (the part after 'v=' in the URL)
+    
+    Returns:
+        dict: Dictionary containing title, thumbnail URL, and duration in seconds
+        None: If the video couldn't be fetched
+    """
+    url = f'https://www.youtube.com/watch?v={video_id}'
+    
+    try:
+        with  self.ydl_opts.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            return {
+                'title': info.get('title'),
+                'thumbnail': info.get('thumbnail'),
+                'duration': info.get('duration')
+            }
+    except Exception as e:
+        print(f"Error fetching video info: {e}")
+        return None
+
     def get_audio_url(self, video_id: str) -> str:
         try:
             with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
