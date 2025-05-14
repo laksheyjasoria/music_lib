@@ -437,7 +437,7 @@ class Song:
     @classmethod
     def from_video_id(cls, video_id: str):
         """Alternative constructor that fetches metadata from audio service"""
-        from services import audioV3  # Import inside method to avoid circular imports
+        import audioV3  # Import inside method to avoid circular imports
         
         # Fetch song details from external service
         details = audioV3.get_song_details(video_id)
