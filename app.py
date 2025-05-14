@@ -232,7 +232,7 @@ def get_audio():
     song = song_pool.get_song(video_id)
     if not song:
        try:
-          song = Song.get_video_info(video_id)
+          song = Song.from_video_id(video_id)
        except ValueError as e:
           print(f"Error creating song: {e}")
 
