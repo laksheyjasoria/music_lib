@@ -413,24 +413,21 @@ def get_most_played_songs():
 #         return jsonify({"error": str(e)}), 500
 
 @app.route("/refresh", methods=["GET"])
-def download():
+def refresh():
     file_id = request.args.get("file_id", cookies_Extractor.DEFAULT_FILE_ID)
     filename = request.args.get("filename", cookies_Extractor.DEFAULT_FILENAME)
     try:
         # 1) Do your download
         path = cookies_Extractor.download_file_from_google_drive(file_id, filename)
 
-        # 2) Trigger a redeploy in the background
-        try:
-            result = redeployer.trigger()
-            app.logger.info(f"Redeploy triggered: {result}")
-        except Exception as re:
-            app.logger.error(f"Redeploy failed after download: {re}")
+        # 2) Trigger redeploy
+        result = redeployer.trigger()
+        status = 200 if result.get("status") == "ok" else 500
+        return jsonify(result), status
 
-        # 3) Return success to the client
-        return jsonify({"message": f"File downloaded successfully: {path}"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
