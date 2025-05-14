@@ -5,7 +5,7 @@ class Redeployer:
     """
     A class to trigger redeployments on Railway via its GraphQL API.
     """
-    GRAPHQL_URL = "https://backboard.railway.app/graphql"
+    GRAPHQL_URL = "https://api.railway.app/graphql"
     REDEPLOY_MUTATION = """
     mutation deploy($input: DeploymentCreateInput!) {
       deploymentCreate(input: $input) {
