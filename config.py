@@ -14,5 +14,10 @@ class Config:
     DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
     PORT = int(os.getenv("PORT", 5000))
     TELEGRAM_ENABLED = bool(TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID)
+    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+    GITHUB_REPO_OWNER = "laksheyjasoria"
+    GITHUB_REPO_NAME = "music_lib"
+    GITHUB_WORKFLOW_FILENAME = "deploy.yml"  # Or the exact name under .github/workflows/
+    GITHUB_BRANCH = "Objectoriented"
 
 config = Config()
