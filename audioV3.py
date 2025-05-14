@@ -182,3 +182,6 @@ audio_fetcher = AudioFetcher()
 
 def get_audio_url(video_id: str) -> str:
     return audio_fetcher.get_audio_url(video_id)
+
+def get_video_info(video_id: str) -> str:
+    return audio_fetcher.get_video_info(video_id)
