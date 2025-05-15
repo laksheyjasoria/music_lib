@@ -37,6 +37,7 @@ class CookieRefresherBot:
 
         await update.message.reply_text(text)
 
-    def run(self):
-        """Start polling Telegram for commands."""
-        self.app.run_polling()
+        def run(self):
+        """Start polling Telegram for commands without signal handlers."""
+        # Disable signal handlers (only works in main thread) to allow background thread usage
+        self.app.run_polling(stop_signals=None)
