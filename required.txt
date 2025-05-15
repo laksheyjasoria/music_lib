@@ -10,3 +10,4 @@ youtube_dl
 pytube
 flask
 requests
+python-telegram-bot
