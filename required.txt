@@ -1,4 +1,5 @@
 yt-dlp
+python-telegram-bot
 gunicorn
 flask-cors
 ffmpeg
