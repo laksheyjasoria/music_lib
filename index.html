@@ -486,7 +486,7 @@ function shareSong() {
   const song = queue[currentIndex];
   if (!song) return showNotification("No song to share");
 
-  const shareUrl = `${window.location.origin}${window.location.pathname}?playId=${song.videoId}`;
+  const shareUrl = `${BACKEND_URL}?playId=${song.videoId}`;
   const shareData = {
     title: `Listen to ${song.title} on Nozzify`,
     text: `Check out this song: ${song.title}`,
