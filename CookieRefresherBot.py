@@ -18,24 +18,44 @@ class CookieRefresherBot:
         # Register /refresh command
         self.app.add_handler(CommandHandler("refresh", self.handle_refresh))
 
+    # async def handle_refresh(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    #     """
+    #     Called when a user sends /refresh.
+    #     It performs a GET to REFRESH_ENDPOINT and replies with the result.
+    #     """
+    #     try:
+    #         resp = requests.get(self.REFRESH_ENDPOINT, timeout=10)
+    #         resp.raise_for_status()
+    #         data = resp.json()
+
+    #         if data.get("success"):
+    #             text = f"✅ Cookies refreshed!\n{data.get('message', '')}"
+    #         else:
+    #             text = f"⚠️ Refresh failed:\n{data.get('message', 'Unknown error')}"
+    #     except Exception as e:
+    #         text = f"❌ Error refreshing cookies:\n{e}"
+
+    #     await update.message.reply_text(text)
     async def handle_refresh(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """
-        Called when a user sends /refresh.
-        It performs a GET to REFRESH_ENDPOINT and replies with the result.
-        """
+    """
+    Called when a user sends /refresh.
+    It performs a GET to REFRESH_ENDPOINT and replies with the result.
+    """
         try:
             resp = requests.get(self.REFRESH_ENDPOINT, timeout=10)
             resp.raise_for_status()
             data = resp.json()
 
-            if data.get("success"):
-                text = f"✅ Cookies refreshed!\n{data.get('message', '')}"
+            message = data.get("message", "")
+            if "File downloaded successfully:" in message:
+                text = f"✅ Cookies refreshed!\n{message}"
             else:
-                text = f"⚠️ Refresh failed:\n{data.get('message', 'Unknown error')}"
+                text = f"⚠️ Refresh failed:\n{message or 'Unknown error'}"
         except Exception as e:
             text = f"❌ Error refreshing cookies:\n{e}"
 
         await update.message.reply_text(text)
+
 
     def run(self):
         """Start polling Telegram for commands without signal handlers."""
