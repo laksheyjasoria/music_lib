@@ -234,6 +234,7 @@ def get_audio():
     if not song:
        try:
           song = Song.from_video_id(video_id)
+          song_pool.add_song(song)
        except ValueError as e:
           print(f"Error creating song: {e}")
 
