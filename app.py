@@ -210,6 +210,8 @@ import audioV3
 import utilsV2
 import cookies_Extractor
 from redeployer import redeployer
+from CookieRefresherBot import CookieRefresherBot
+
 
 app = Flask(__name__)
 CORS(app)
@@ -442,6 +444,14 @@ def get_song():
 
     return jsonify(song.to_dict())
 
+def telegram_bot():
+    telegram_token = os.environ.get("TELEGRAM_TOKEN")
+    if not telegram_token:
+        raise RuntimeError("Please set the TELEGRAM_TOKEN environment variable")
+
+    bot = CookieRefresherBot(telegram_token)
+    bot.run()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
+    telegram_bot()
