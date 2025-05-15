@@ -478,26 +478,27 @@ function handleDirectPlay() {
         }
         secondsColumn.innerHTML += '<div style="height: 100px"></div>';
       }
- function shareSong() {
-            const queue = getQueue();
-            const currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
-            const song = queue[currentIndex];
-            
-            const shareUrl = `${window.location.origin}/play/${song.videoId}`;
-            const shareData = {
-                title: `Listen to ${song.title} on Nozzify`,
-                text: `Check out this song: ${song.title}`,
-                url: shareUrl
-            };
 
-            if (navigator.share) {
-                navigator.share(shareData).catch(() => {
-                    copyToClipboard(shareUrl);
-                });
-            } else {
-                copyToClipboard(shareUrl);
-            }
-        }
+// 2. Build share URLs as ?playId=ID
+function shareSong() {
+  const queue = getQueue();
+  const currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
+  const song = queue[currentIndex];
+  if (!song) return showNotification("No song to share");
+
+  const shareUrl = `${window.location.origin}${window.location.pathname}?playId=${song.videoId}`;
+  const shareData = {
+    title: `Listen to ${song.title} on Nozzify`,
+    text: `Check out this song: ${song.title}`,
+    url: shareUrl
+  };
+
+  if (navigator.share) {
+    navigator.share(shareData).catch(() => copyToClipboard(shareUrl));
+  } else {
+    copyToClipboard(shareUrl);
+  }
+}
 
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text)
@@ -521,38 +522,41 @@ function handleDirectPlay() {
             .catch(() => showError("Failed to copy link"));
     }
 }
-document.getElementById('shareBtn').addEventListener('click', async () => {
-    const queue = getQueue();
-    const currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
-    const currentSong = queue[currentIndex];
+      document.getElementById('shareBtn').addEventListener('click', shareSong);
+// document.getElementById('shareBtn').addEventListener('click', async () => {
+//     const queue = getQueue();
+//     const currentIndex = parseInt(sessionStorage.getItem("currentIndex"), 10);
+//     const currentSong = queue[currentIndex];
 
-    if (!currentSong) {
-        showNotification("No song playing to share");
-        return;
-    }
+//     if (!currentSong) {
+//         showNotification("No song playing to share");
+//         return;
+//     }
 
-    try {
-        const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
-        const shareData = {
-            title: `Listen to ${currentSong.title} on Nozzify`,
-            text: `Check out this song: ${currentSong.title}`,
-            url: shareUrl
-        };
+//     try {
+//         const shareUrl = `${window.location.origin}/play/${currentSong.videoId}`;
+//         const shareData = {
+//             title: `Listen to ${currentSong.title} on Nozzify`,
+//             text: `Check out this song: ${currentSong.title}`,
+//             url: shareUrl
+//         };
 
-        if (navigator.share) {
-            await navigator.share(shareData);
-        } else {
-            // Fallback for desktop browsers
-            await navigator.clipboard.writeText(shareUrl);
-            showNotification("Link copied to clipboard!");
-        }
-    } catch (error) {
-        console.error('Sharing failed:', error);
-        if (error.name !== 'AbortError') {
-            showNotification("Sharing not supported - URL copied");
-        }
-    }
-});
+//         if (navigator.share) {
+//             await navigator.share(shareData);
+//         } else {
+//             // Fallback for desktop browsers
+//             await navigator.clipboard.writeText(shareUrl);
+//             showNotification("Link copied to clipboard!");
+//         }
+//     } catch (error) {
+//         console.error('Sharing failed:', error);
+//         if (error.name !== 'AbortError') {
+//             showNotification("Sharing not supported - URL copied");
+//         }
+//     }
+// });
+
+      
 
       function setupTimeWheels() {
         const hoursColumn = document.getElementById("hoursColumn");
@@ -758,19 +762,22 @@ function updateProgress() {
     `;
 }
 
-        function handleAppLoad() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const videoId = urlParams.get('videoId');
-            const pathVideoId = window.location.pathname.split('/play/')[1];
+// 1. On page load, look for playId=... instead of /play/...
+function handleAppLoad() {
+  const params = new URLSearchParams(window.location.search);
+  const playId = params.get('playId');
 
-            if (pathVideoId) {
-                playDirect(pathVideoId);
-            } else if (videoId) {
-                handleSharedSong(videoId);
-            } else {
-                loadExistingSession();
-            }
-        }
+  if (playId) {
+    playDirect(playId)
+      .catch(() => loadExistingSession())
+      .finally(() => {
+        // Remove the query param so UI stays clean
+        window.history.replaceState({}, document.title, window.location.pathname);
+      });
+  } else {
+    loadExistingSession();
+  }
+}
 
 
 function updateMediaSession(title, thumbnail) {
@@ -1086,12 +1093,12 @@ function updateMediaSession(title, thumbnail) {
       });
 
 window.onload = () => {
-    initializeTimeWheels();
-    fetchTrendingSongs();
-    fetchMostPlayedSongs();
-    setInterval(fetchMostPlayedSongs, 30000);
-    refreshFavoritesList();
-     handleAppLoad();
+  initializeTimeWheels();
+  fetchTrendingSongs();
+  fetchMostPlayedSongs();
+  setInterval(fetchMostPlayedSongs, 30000);
+  refreshFavoritesList();
+  handleAppLoad();
 };
     </script>
   </body>
