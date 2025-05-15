@@ -212,6 +212,7 @@ import cookies_Extractor
 from redeployer import redeployer
 from CookieRefresherBot import CookieRefresherBot
 import threading
+import asyncio
 
 app = Flask(__name__)
 CORS(app)
@@ -445,14 +446,21 @@ def get_song():
     return jsonify(song.to_dict())
 
 def start_telegram_bot():
-    telegram_token = Config.TELEGRAM_BOT_TOKEN
-    if not telegram_token:
-        raise RuntimeError("Please set the TELEGRAM_BOT_TOKEN environment variable")
-    bot = CookieRefresherBot(telegram_token)
+    # 1) Create and set a fresh event loop for this thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # 2) Instantiate and run the bot
+    token = Config.TELEGRAM_BOT_TOKEN
+    if not token:
+        raise RuntimeError("Please set TELEGRAM_BOT_TOKEN in your Config")
+    bot = CookieRefresherBot(token)
+    # run_polling is a coroutine under the hood, but it will schedule itself on the loop
     bot.run()
 
 if __name__ == "__main__":
     bot_thread = threading.Thread(target=start_telegram_bot, daemon=True)
     bot_thread.start()
+
   
     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
