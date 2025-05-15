@@ -445,7 +445,7 @@ def get_song():
     return jsonify(song.to_dict())
 
 def telegram_bot():
-    telegram_token = os.environ.get("TELEGRAM_TOKEN")
+    telegram_token =Config.TELEGRAM_BOT_TOKEN
     if not telegram_token:
         raise RuntimeError("Please set the TELEGRAM_TOKEN environment variable")
 
