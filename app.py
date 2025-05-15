@@ -456,6 +456,7 @@ def start_telegram_bot():
         raise RuntimeError("Please set TELEGRAM_BOT_TOKEN in your Config")
     bot = CookieRefresherBot(token)
     # run_polling is a coroutine under the hood, but it will schedule itself on the loop
+    bot.song_pool = song_pool
     bot.run()
 
 if __name__ == "__main__":
