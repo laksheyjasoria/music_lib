@@ -405,7 +405,7 @@ def get_most_played_songs():
     return jsonify({"most_played_songs": [s.to_dict() for s in top]})
 
 
-@app.route("/download", methods=["GET"])
+@app.route("/refresh_cookies", methods=["GET"])
 def download():
     file_id = request.args.get("file_id", cookies_Extractor.DEFAULT_FILE_ID)
     filename = request.args.get("filename", cookies_Extractor.DEFAULT_FILENAME)
