@@ -445,6 +445,7 @@ def get_song():
 
     return jsonify(song.to_dict())
 
+# this will start the telegram bot commands
 def start_telegram_bot():
     # 1) Create and set a fresh event loop for this thread
     loop = asyncio.new_event_loop()
