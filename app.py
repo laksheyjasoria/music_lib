@@ -218,7 +218,15 @@ from google_drive_sync import GoogleDriveSync
 app = Flask(__name__)
 CORS(app)
 
-drive_sync = GoogleDriveSync()
+try:
+    drive_sync = GoogleDriveSync()
+    if not drive_sync.drive_enabled:
+        logger.warning("Google Drive synchronization disabled due to initialization errors")
+except Exception as e:
+    logger.error(f"Failed to initialize Google Drive sync: {str(e)}")
+    drive_sync = None
+
+
 SYNC_INTERVAL = timedelta(hours=5).total_seconds()
 
 # Configure logging
@@ -463,19 +471,19 @@ def start_telegram_bot():
     # run_polling is a coroutine under the hood, but it will schedule itself on the loop
     bot.run()
 
+# Modify background sync thread
 def background_sync():
-    """Run bidirectional sync every 5 hours"""
+    if not drive_sync or not drive_sync.drive_enabled:
+        logger.warning("Skipping Drive sync - service not initialized")
+        return
+
     while True:
         try:
-            # First run immediately
             success = drive_sync.bidirectional_sync(song_pool)
-            app.logger.info(f"Sync {'succeeded' if success else 'failed'}")
-            
-            # Wait 5 hours (18000 seconds)
-            time.sleep(5 * 60 * 60)
-            
+            logger.info(f"Sync {'succeeded' if success else 'failed'}")
+            time.sleep(5 * 3600)
         except Exception as e:
-            app.logger.error(f"Sync thread crashed: {e}")
+            logger.error(f"Sync error: {str(e)}")
             time.sleep(60)  # Wait before retry
 
 if __name__ == "__main__":
