@@ -146,6 +146,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from googleapiclient.errors import HttpError
 from song import SongPool
+from utils.telegram_logger import telegram_handler
 # from config import  GOOGLE_CREDENTIALS_PATH
 
 class GoogleDriveSync:
