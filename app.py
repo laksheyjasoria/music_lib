@@ -471,6 +471,8 @@ def start_telegram_bot():
         raise RuntimeError("Please set TELEGRAM_BOT_TOKEN in your Config")
     bot = CookieRefresherBot(token,song_pool)
     # run_polling is a coroutine under the hood, but it will schedule itself on the loop
+    bot.handle_refresh_creds()
+    bot.handle_refresh()
     bot.run()
 
 # Modify background sync thread
@@ -489,6 +491,8 @@ def background_sync():
             time.sleep(60)  # Wait before retry
 
 if __name__ == "__main__":
+
+  
     # Initial sync check
     if not song_pool.get_all_songs():
         app.logger.info("Cold start - loading from Drive")
