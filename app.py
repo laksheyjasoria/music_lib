@@ -218,20 +218,22 @@ from google_drive_sync import GoogleDriveSync
 app = Flask(__name__)
 CORS(app)
 
-try:
-    drive_sync = GoogleDriveSync()
-    if not drive_sync.drive_enabled:
-        logger.warning("Google Drive synchronization disabled due to initialization errors")
-except Exception as e:
-    logger.error(f"Failed to initialize Google Drive sync: {str(e)}")
-    drive_sync = None
 
-
-SYNC_INTERVAL = timedelta(hours=5).total_seconds()
 
 # Configure logging
 app.logger.addHandler(telegram_handler)
 app.logger.setLevel(logging.INFO)
+
+try:
+    drive_sync = GoogleDriveSync()
+    if not drive_sync.drive_enabled:
+        app.logger.warning("Google Drive synchronization disabled due to initialization errors")
+except Exception as e:
+    app.logger.error(f"Failed to initialize Google Drive sync: {str(e)}")
+    drive_sync = None
+
+
+SYNC_INTERVAL = timedelta(hours=5).total_seconds()
 
 # Initialize song pool and trending cache
 song_pool = SongPool()
@@ -474,16 +476,16 @@ def start_telegram_bot():
 # Modify background sync thread
 def background_sync():
     if not drive_sync or not drive_sync.drive_enabled:
-        logger.warning("Skipping Drive sync - service not initialized")
+        app.logger.warning("Skipping Drive sync - service not initialized")
         return
 
     while True:
         try:
             success = drive_sync.bidirectional_sync(song_pool)
-            logger.info(f"Sync {'succeeded' if success else 'failed'}")
+            app.logger.info(f"Sync {'succeeded' if success else 'failed'}")
             time.sleep(5 * 3600)
         except Exception as e:
-            logger.error(f"Sync error: {str(e)}")
+            app.logger.error(f"Sync error: {str(e)}")
             time.sleep(60)  # Wait before retry
 
 if __name__ == "__main__":
