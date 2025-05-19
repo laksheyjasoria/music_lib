@@ -213,7 +213,7 @@ from redeployer import redeployer
 from CookieRefresherBot import CookieRefresherBot
 import threading
 import asyncio
-from google_drive_sync import GoogleDriveSync
+import GoogleDriveSync
 
 app = Flask(__name__)
 CORS(app)
@@ -463,62 +463,36 @@ def start_telegram_bot():
     # run_polling is a coroutine under the hood, but it will schedule itself on the loop
     bot.run()
 
-def bidirectional_sync():
-    """Add missing songs in both directions every 5 hours"""
+def background_sync():
+    """Run bidirectional sync every 5 hours"""
     while True:
         try:
-            # 1. Add Drive songs missing in SongPool
-            drive_songs = drive_sync.get_file_data()
-            current_video_ids = {s.video_id for s in song_pool.get_all_songs()}
+            # First run immediately
+            success = drive_sync.bidirectional_sync(song_pool)
+            app.logger.info(f"Sync {'succeeded' if success else 'failed'}")
             
-            added_from_drive = 0
-            for song_data in drive_songs:
-                if song_data['videoId'] not in current_video_ids:
-                    try:
-                        song = Song(
-                            video_id=song_data['videoId'],
-                            title=song_data['title'],
-                            thumbnail=song_data['thumbnail'],
-                            duration=song_data['duration']
-                        )
-                        if song.is_valid() and song_pool.add_song(song):
-                            added_from_drive += 1
-                    except Exception as e:
-                        app.logger.error(f"Failed adding from Drive: {str(e)}")
-
-            # 2. Add SongPool songs missing in Drive
-            all_songs = {s.video_id: s for s in song_pool.get_all_songs()}
-            drive_video_ids = {s['videoId'] for s in drive_songs}
+            # Wait 5 hours (18000 seconds)
+            time.sleep(5 * 60 * 60)
             
-            songs_to_add = [
-                s.to_dict() for s in all_songs.values()
-                if s.video_id not in drive_video_ids
-            ]
-
-            if songs_to_add:
-                updated_data = drive_songs + songs_to_add
-                drive_sync._upload_data(updated_data)  # Use your existing upload method
-
-            # Log results
-            app.logger.info(
-                f"Sync completed. Added {added_from_drive} from Drive, "
-                f"{len(songs_to_add)} to Drive"
-            )
-
         except Exception as e:
-            app.logger.error(f"Sync failed: {str(e)}")
-        
-        # Wait for next sync
-        time.sleep(SYNC_INTERVAL)
+            app.logger.error(f"Sync thread crashed: {e}")
+            time.sleep(60)  # Wait before retry
 
 if __name__ == "__main__":
+    # Initial sync check
+    if not song_pool.get_all_songs():
+        app.logger.info("Cold start - loading from Drive")
+        drive_sync.bidirectional_sync(song_pool)
+    else:
+        app.logger.info("Existing songs found - performing initial sync")
+        drive_sync.bidirectional_sync(song_pool)
+
+    # Start Telegram bot thread (existing)
     bot_thread = threading.Thread(target=start_telegram_bot, daemon=True)
     bot_thread.start()
 
-    bidirectional_sync()  # Run immediately on startup
-
-    # Start periodic sync thread
-    sync_thread = threading.Thread(target=bidirectional_sync, daemon=True)
+    # Start sync thread (new)
+    sync_thread = threading.Thread(target=background_sync, daemon=True)
     sync_thread.start()
   
     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
