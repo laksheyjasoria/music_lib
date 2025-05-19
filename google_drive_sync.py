@@ -9,30 +9,48 @@ from song import SongPool
 # from config import  GOOGLE_CREDENTIALS_PATH
 
 class GoogleDriveSync:
-    def __init__(self):
-        self._lock = threading.Lock()
+def __init__(self):
+    self._lock = threading.Lock()
+    self.drive_enabled = True
+    try:
         self._service = self._authenticate()
-        self._file_id = '1GPLMy-9aQoNHRGbPuL2CENaHaCZpUgZZ'
+        self._file_id = '1GPLMy-9aQoNHRGbPuL2CENaHaCZpUgZZ'  # Remove this from code!
+    except Exception as e:
+        self.drive_enabled = False
+        logger.error(f"Google Drive initialization failed: {str(e)}")
+        logger.warning("Google Drive integration disabled")
 
-    def _authenticate(self):
-        """Authentication handling with credentials.json"""
-        from google.oauth2 import service_account
-        from google_auth_oauthlib.flow import InstalledAppFlow
-        
+def _authenticate(self):
+    """Authentication handling with error logging"""
+    from google.oauth2 import service_account
+    from google_auth_oauthlib.flow import InstalledAppFlow
+    
+    try:
+        # Try service account first
+        return service_account.Credentials.from_service_account_file(
+            "credentials.json",
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+    except FileNotFoundError as e:
+        logger.error("Credentials file not found. Please ensure credentials.json exists.")
+        raise
+    except ValueError as e:
+        logger.warning("Service account auth failed, trying OAuth...")
         try:
-            # Try service account first
-            return service_account.Credentials.from_service_account_file(
-                "credentials.json",
-                scopes=['https://www.googleapis.com/auth/drive.file']
-            )
-        except ValueError:
-            # Fallback to OAuth flow
             flow = InstalledAppFlow.from_client_secrets_file(
                 "credentials.json",
                 scopes=['https://www.googleapis.com/auth/drive.file']
             )
             return flow.run_local_server(port=0)
-
+        except FileNotFoundError as e:
+            logger.error("Missing credentials.json for OAuth flow")
+            raise
+        except Exception as e:
+            logger.error(f"OAuth authentication failed: {str(e)}")
+            raise
+    except Exception as e:
+        logger.error(f"Authentication error: {str(e)}")
+        raise
     def get_file_data(self) -> List[Dict]:
         """Retrieve and parse song data from Drive"""
         try:
