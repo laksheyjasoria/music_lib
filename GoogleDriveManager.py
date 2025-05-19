@@ -77,23 +77,23 @@ class DriveIntegrationError(Exception):
     pass
 
 # Usage in another class
-class YourApplicationClass:
-    def __init__(self):
-        self.drive = GoogleDriveManager()
+# class YourApplicationClass:
+#     def __init__(self):
+#         self.drive = GoogleDriveManager()
         
-    def process_file(self):
-        try:
-            # Get file content using config default ID
-            content = self.drive.get_file_content()
+#     def process_file(self):
+#         try:
+#             # Get file content using config default ID
+#             content = self.drive.get_file_content()
             
-            # Process content
-            modified_content = content + b"\nProcessed by my app"
+#             # Process content
+#             modified_content = content + b"\nProcessed by my app"
             
-            # Update file using config default ID
-            self.drive.update_file_content(
-                modified_content,
-                'text/plain'
-            )
+#             # Update file using config default ID
+#             self.drive.update_file_content(
+#                 modified_content,
+#                 'text/plain'
+#             )
             
-        except DriveIntegrationError as e:
-            print(f"Drive error occurred: {str(e)}")
+#         except DriveIntegrationError as e:
+#             print(f"Drive error occurred: {str(e)}")
