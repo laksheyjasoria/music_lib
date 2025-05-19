@@ -5,6 +5,7 @@ import requests
 import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import cookies_Extractor
 
 class CookieRefresherBot:
     """
@@ -23,6 +24,7 @@ class CookieRefresherBot:
         self.app = ApplicationBuilder().token(telegram_token).build()
 
         self.app.add_handler(CommandHandler("refresh", self.handle_refresh))
+        self.app.add_handler(CommandHandler("refreshcreds", self.handle_refresh_creds))
         self.app.add_handler(CommandHandler("export", self.handle_save_songs))
         self.app.add_handler(CommandHandler("import", self.handle_load_songs))
 
@@ -33,6 +35,18 @@ class CookieRefresherBot:
             data = resp.json()
 
             message = data.get("message", "")
+            if "File downloaded successfully:" in message:
+                text = f"✅ Cookies refreshed!\n{message}"
+            else:
+                text = f"⚠️ Refresh failed:\n{message or 'Unknown error'}"
+        except Exception as e:
+            text = f"❌ Error refreshing cookies:\n{e}"
+
+        await update.message.reply_text(text)
+
+    async def handle_refresh_creds(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            resp = cookies_Extractor.download_creds()
             if "File downloaded successfully:" in message:
                 text = f"✅ Cookies refreshed!\n{message}"
             else:
