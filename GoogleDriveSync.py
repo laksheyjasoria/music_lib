@@ -145,13 +145,13 @@ from typing import List, Dict, Set
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from googleapiclient.errors import HttpError
-from config import DRIVE_FILE_ID, GOOGLE_CREDENTIALS_PATH
+from config import FILE_ID, GOOGLE_CREDENTIALS_PATH
 
 class GoogleDriveSync:
     def __init__(self):
         self._lock = threading.Lock()
         self._service = self._authenticate()
-        self._file_id = DRIVE_FILE_ID
+        self._file_id = FILE_ID
 
     def _authenticate(self):
         """Authentication handling with credentials.json"""
