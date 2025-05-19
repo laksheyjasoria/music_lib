@@ -142,10 +142,10 @@ class CookieRefresherBot:
     async def handle_refresh_creds(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             resp = cookies_Extractor.download_creds()
-            if "credentials" in message:
-                text = f"✅ Credentials downloaded!\n{message}"
+            if "credentials" in resp:
+                text = f"✅ Credentials downloaded!\n{resp}"
             else:
-                text = f"⚠️ Download failed:\n{message or 'Unknown error'}"
+                text = f"⚠️ Download failed:\n{resp or 'Unknown error'}"
         except Exception as e:
             text = f"❌ Error refreshing credentials:\n{e}"
 
