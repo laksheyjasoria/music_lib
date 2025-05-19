@@ -145,7 +145,7 @@ from typing import List, Dict, Set
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from googleapiclient.errors import HttpError
-from config import  GOOGLE_CREDENTIALS_PATH
+# from config import  GOOGLE_CREDENTIALS_PATH
 
 class GoogleDriveSync:
     def __init__(self):
@@ -161,13 +161,13 @@ class GoogleDriveSync:
         try:
             # Try service account first
             return service_account.Credentials.from_service_account_file(
-                GOOGLE_CREDENTIALS_PATH,
+                "credentials.json",
                 scopes=['https://www.googleapis.com/auth/drive.file']
             )
         except ValueError:
             # Fallback to OAuth flow
             flow = InstalledAppFlow.from_client_secrets_file(
-                GOOGLE_CREDENTIALS_PATH,
+                "credentials.json",
                 scopes=['https://www.googleapis.com/auth/drive.file']
             )
             return flow.run_local_server(port=0)
