@@ -149,6 +149,10 @@ from song import SongPool
 from utils.telegram_logger import telegram_handler
 # from config import  GOOGLE_CREDENTIALS_PATH
 
+logger = logging.getLogger(__name__)
+logger.addHandler(telegram_handler)
+logger.setLevel(logging.INFO)
+
 class GoogleDriveSync:
     def __init__(self):
         self._lock = threading.Lock()
