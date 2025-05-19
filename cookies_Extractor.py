@@ -4,6 +4,10 @@ import requests
 DEFAULT_FILE_ID = '18tMZ36WoVNOA-JvdGgFhq4cYdqsMU66Q'
 DEFAULT_FILENAME = 'cookies.json'
 
+# FILE_ID='1GPLMy-9aQoNHRGbPuL2CENaHaCZpUgZZ'
+FILE_ID='1rBx3pYheJ82VjzRkdgJpOXGWrKvC4OiW'
+FILENAME2='credentials.json'
+
 def download_file_from_google_drive(file_id=DEFAULT_FILE_ID, filename=DEFAULT_FILENAME):
     """
     Downloads a file from Google Drive and saves it in the current working directory.
@@ -29,6 +33,9 @@ def download_file_from_google_drive(file_id=DEFAULT_FILE_ID, filename=DEFAULT_FI
 
     save_response_content(response, destination)
     return destination
+
+def download_creds(creds_file_id=FILE_ID, creds_filename=FILENAME2):
+   return  download_file_from_google_drive(file_id=creds_file_id, filename=creds_filename)
 
 def get_confirm_token(response):
     """
