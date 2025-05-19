@@ -174,52 +174,54 @@ from typing import List, Dict, Set
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from googleapiclient.errors import HttpError
-from song import SongPool
-# from config import  GOOGLE_CREDENTIALS_PATH
+from song import SongPool, Song  # Assuming Song is also in song.py
+import logging
+
+logger = logging.getLogger(__name__)
 
 class GoogleDriveSync:
-def __init__(self):
-    self._lock = threading.Lock()
-    self.drive_enabled = True
-    try:
-        self._service = self._authenticate()
-        self._file_id = '1GPLMy-9aQoNHRGbPuL2CENaHaCZpUgZZ'  # Remove this from code!
-    except Exception as e:
-        self.drive_enabled = False
-        logger.error(f"Google Drive initialization failed: {str(e)}")
-        logger.warning("Google Drive integration disabled")
-
-def _authenticate(self):
-    """Authentication handling with error logging"""
-    from google.oauth2 import service_account
-    from google_auth_oauthlib.flow import InstalledAppFlow
-    
-    try:
-        # Try service account first
-        return service_account.Credentials.from_service_account_file(
-            "credentials.json",
-            scopes=['https://www.googleapis.com/auth/drive.file']
-        )
-    except FileNotFoundError as e:
-        logger.error("Credentials file not found. Please ensure credentials.json exists.")
-        raise
-    except ValueError as e:
-        logger.warning("Service account auth failed, trying OAuth...")
+    def __init__(self):
+        self._lock = threading.Lock()
+        self.drive_enabled = True
         try:
-            flow = InstalledAppFlow.from_client_secrets_file(
+            self._service = self._authenticate()
+            self._file_id = '1GPLMy-9aQoNHRGbPuL2CENaHaCZpUgZZ'  # Consider removing from code!
+        except Exception as e:
+            self.drive_enabled = False
+            logger.error(f"Google Drive initialization failed: {str(e)}")
+            logger.warning("Google Drive integration disabled")
+
+    def _authenticate(self):
+        """Authentication handling with error logging"""
+        from google.oauth2 import service_account
+        from google_auth_oauthlib.flow import InstalledAppFlow
+
+        try:
+            return service_account.Credentials.from_service_account_file(
                 "credentials.json",
                 scopes=['https://www.googleapis.com/auth/drive.file']
             )
-            return flow.run_local_server(port=0)
-        except FileNotFoundError as e:
-            logger.error("Missing credentials.json for OAuth flow")
+        except FileNotFoundError:
+            logger.error("Credentials file not found. Please ensure credentials.json exists.")
             raise
+        except ValueError:
+            logger.warning("Service account auth failed, trying OAuth...")
+            try:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    "credentials.json",
+                    scopes=['https://www.googleapis.com/auth/drive.file']
+                )
+                return flow.run_local_server(port=0)
+            except FileNotFoundError:
+                logger.error("Missing credentials.json for OAuth flow")
+                raise
+            except Exception as e:
+                logger.error(f"OAuth authentication failed: {str(e)}")
+                raise
         except Exception as e:
-            logger.error(f"OAuth authentication failed: {str(e)}")
+            logger.error(f"Authentication error: {str(e)}")
             raise
-    except Exception as e:
-        logger.error(f"Authentication error: {str(e)}")
-        raise
+
     def get_file_data(self) -> List[Dict]:
         """Retrieve and parse song data from Drive"""
         try:
@@ -238,12 +240,7 @@ def _authenticate(self):
             return []
 
     def bidirectional_sync(self, song_pool: SongPool) -> bool:
-        """
-        Add missing songs in both directions:
-        1. Drive → SongPool
-        2. SongPool → Drive
-        Returns True if both syncs succeeded
-        """
+        """Add missing songs in both directions"""
         success_drive_to_pool = self._sync_drive_to_pool(song_pool)
         success_pool_to_drive = self._sync_pool_to_drive(song_pool)
         return success_drive_to_pool and success_pool_to_drive
@@ -274,11 +271,9 @@ def _authenticate(self):
     def _sync_pool_to_drive(self, song_pool: SongPool) -> bool:
         """Add SongPool songs missing in Drive"""
         try:
-            # Get current Drive data
             drive_songs = self.get_file_data()
             drive_ids = {s['videoId'] for s in drive_songs if 'videoId' in s}
 
-            # Get songs to add
             with song_pool._lock:  # pylint: disable=protected-access
                 songs_to_add = [
                     song.to_dict()
@@ -289,7 +284,6 @@ def _authenticate(self):
             if not songs_to_add:
                 return True  # Nothing to add
 
-            # Merge and upload
             updated_data = drive_songs + songs_to_add
             return self._upload_data(updated_data)
         except Exception as e:
@@ -320,7 +314,7 @@ def _authenticate(self):
             logger.error(f"Drive upload failed: {e}")
             return False
 
-    def _create_song(self, song_pool: SongPool, song_data: Dict):
+    def _create_song(self, song_pool: SongPool, song_data: Dict) -> bool:
         """Create new song from drive data with validation"""
         try:
             song = Song(
@@ -331,7 +325,9 @@ def _authenticate(self):
             )
             if song.is_valid():
                 song_pool._songs[song.video_id] = song  # pylint: disable=protected-access
+                return True
         except KeyError as e:
             logger.error(f"Invalid song data: Missing {e}")
         except Exception as e:
             logger.error(f"Song creation failed: {e}")
+        return False
