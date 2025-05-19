@@ -213,7 +213,7 @@ from redeployer import redeployer
 from CookieRefresherBot import CookieRefresherBot
 import threading
 import asyncio
-import GoogleDriveSync
+from google_drive_sync import GoogleDriveSync
 
 app = Flask(__name__)
 CORS(app)
