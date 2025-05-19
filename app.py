@@ -233,7 +233,7 @@ except Exception as e:
     drive_sync = None
 
 
-SYNC_INTERVAL = timedelta(hours=5).total_seconds()
+SYNC_INTERVAL = 5*60*60
 
 # Initialize song pool and trending cache
 song_pool = SongPool()
