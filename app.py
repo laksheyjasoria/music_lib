@@ -460,19 +460,51 @@ def get_song():
     return jsonify(song.to_dict())
 
 # this will start the telegram bot commands
+# def start_telegram_bot():
+#     # 1) Create and set a fresh event loop for this thread
+#     loop = asyncio.new_event_loop()
+#     asyncio.set_event_loop(loop)
+
+#     # 2) Instantiate and run the bot
+#     token = Config.TELEGRAM_BOT_TOKEN
+#     if not token:
+#         raise RuntimeError("Please set TELEGRAM_BOT_TOKEN in your Config")
+#     bot = CookieRefresherBot(token,song_pool)
+#     # run_polling is a coroutine under the hood, but it will schedule itself on the loop
+#     bot.handle_refresh_creds()
+#     bot.handle_refresh()
+#     bot.run()
+
+def wait_for_flask_startup():
+    """Poll the Flask server until it's up."""
+    url = f"http://localhost:{Config.PORT}/health"  # Use an actual lightweight endpoint
+    for _ in range(10):
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                return True
+        except requests.exceptions.ConnectionError:
+            pass
+        time.sleep(2)
+    return False
+
 def start_telegram_bot():
-    # 1) Create and set a fresh event loop for this thread
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    # 2) Instantiate and run the bot
     token = Config.TELEGRAM_BOT_TOKEN
     if not token:
         raise RuntimeError("Please set TELEGRAM_BOT_TOKEN in your Config")
-    bot = CookieRefresherBot(token,song_pool)
-    # run_polling is a coroutine under the hood, but it will schedule itself on the loop
-    bot.handle_refresh_creds()
-    bot.handle_refresh()
+
+    bot = CookieRefresherBot(token, song_pool)
+
+    # Wait for Flask to start before calling these
+    if wait_for_flask_startup():
+        bot.handle_refresh_creds()
+        bot.handle_refresh()
+    else:
+        app.logger.warning("Flask app didn't start in time. Skipping initial refresh.")
+
     bot.run()
 
 # Modify background sync thread
@@ -489,6 +521,11 @@ def background_sync():
         except Exception as e:
             app.logger.error(f"Sync error: {str(e)}")
             time.sleep(60)  # Wait before retry
+
+@app.route("/health")
+def health_check():
+    return "OK", 200
+
 
 if __name__ == "__main__":
 
