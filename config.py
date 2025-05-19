@@ -19,7 +19,7 @@ class Config:
     GITHUB_REPO_NAME = "music_lib"
     GITHUB_WORKFLOW_FILENAME = "deploy.yml"  # Or the exact name under .github/workflows/
     GITHUB_BRANCH = "Objectoriented"
-    GOOGLE_CREDENTIALS_PATH="credentials.json", 
+    GOOGLE_CREDENTIALS_PATH="credentials.json" 
     DRIVE_FILE_ID="1GPLMy-9aQoNHRGbPuL2CENaHaCZpUgZZ"
 
 config = Config()
