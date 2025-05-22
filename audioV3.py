@@ -342,7 +342,6 @@
 # def get_video_info(video_id: str) -> str:
 #     return audio_fetcher.get_video_info(video_id)
 
-
 from config import Config
 from utils.telegram_logger import telegram_handler
 import logging
@@ -410,7 +409,8 @@ class AudioFetcher:
                 best_format = max(
                     audio_formats,
                     key=lambda f: f.get('abr', 0) or f.get('tbr', 0)
-                
+                )
+
                 return best_format.get('url')
                 
         except yt_dlp.utils.DownloadError as e:
