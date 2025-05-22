@@ -1,189 +1,73 @@
-# import logging
-# import yt_dlp
-# import requests
-# from config.config import Config
-# from utils.logger import setup_logger
-
-# logger = setup_logger(__name__)
-
-# class AudioFetcher:
-#     def __init__(self):
-#         self.ydl_opts = {
-#             "format": "bestaudio/best",
-#             "noplaylist": True,
-#             "quiet": True,
-#             "no_warnings": False,
-#             "cookiefile": "cookies.txt",
-#             "extract_flat": False
-#         }
-
-#     def get_video_info(self, video_id: str):
-#         url = f'https://www.youtube.com/watch?v={video_id}'
-#         try:
-#             with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
-#                 info = ydl.extract_info(url, download=False)
-#                 return {
-#                     'title': info.get('title'),
-#                     'thumbnail': info.get('thumbnail'),
-#                     'duration': info.get('duration')
-#                 }
-#         except Exception as e:
-#             logger.error(f"Error fetching video info: {e}")
-#             return None
-
-#     def get_audio_url(self, video_id: str) -> str:
-#         url = f'https://www.youtube.com/watch?v={video_id}'
-#         try:
-#             with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
-#                 info = ydl.extract_info(url, download=False)
-                
-#                 if 'url' in info:
-#                     return info['url']
-                
-#                 formats = info.get('formats', [])
-#                 audio_formats = [f for f in formats if f.get('acodec') != 'none']
-                
-#                 if not audio_formats:
-#                     logger.error(f"No audio formats found for {video_id}")
-#                     return None
-                
-#                 best_format = max(audio_formats, key=lambda f: f.get('abr', 0) or f.get('tbr', 0))
-#                 return best_format.get('url')
-                
-#         except yt_dlp.utils.DownloadError as e:
-#             self._handle_download_error(video_id, e)
-#             return None
-#         except Exception as e:
-#             logger.error(f"Unexpected error getting audio URL: {e}")
-#             return None
-
-#     def _handle_download_error(self, video_id: str, error: Exception):
-#         error_msg = str(error)
-#         if any(msg in error_msg for msg in ["Sign in", "--cookies"]):
-#             alert = f"🚨 yt-dlp CAPTCHA/Login needed for {video_id}\nError: {error_msg.splitlines()[0]}"
-#             logger.warning(alert)
-#             if Config.TELEGRAM_ENABLED:
-#                 self._notify_telegram(alert)
-#         else:
-#             logger.error(f"yt-dlp DownloadError: {error_msg}")
-
-#     def _notify_telegram(self, message: str):
-#         try:
-#             requests.post(
-#                 f"https://api.telegram.org/bot{Config.TELEGRAM_BOT_TOKEN}/sendMessage",
-#                 json={"chat_id": Config.TELEGRAM_CHAT_ID, "text": message[:4000]},
-#                 timeout=5
-#             )
-#         except Exception as e:
-#             logger.error(f"Telegram notification failed: {str(e)}")
-
-# audio_fetcher = AudioFetcher()
-
 import logging
 import yt_dlp
-import requests
+import random
+from yt_dlp.utils import ExtractorError
 from config.config import Config
 from utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
+USER_AGENTS = [
+    "Mozilla/5.0 …",
+    "Opera/9.80 …",
+    # …add a few here
+]
+
 class AudioFetcher:
     def __init__(self):
-        self.ydl_opts = {
-            "format": "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
+        self.base_opts = {
             "noplaylist": True,
             "quiet": True,
             "no_warnings": False,
             "cookiefile": "cookies.txt",
             "extract_flat": False,
-            "verbose": True  # Add this for debugging
+            "verbose": False,
         }
 
-    def get_video_info(self, video_id: str):
-        url = f'https://www.youtube.com/watch?v={video_id}'
-        try:
-            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                return {
-                    'title': info.get('title'),
-                    'thumbnail': info.get('thumbnail'),
-                    'duration': info.get('duration')
-                }
-        except Exception as e:
-            logger.error(f"Error fetching video info: {e}")
-            return None
-
     def get_audio_url(self, video_id: str) -> str:
-        url = f'https://www.youtube.com/watch?v={video_id}'
-        
-        # Try with different format options
+        url = f"https://www.youtube.com/watch?v={video_id}"
         format_options = [
             "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
             "bestaudio/best",
             "best",
-            "worst"  # Fallback to worst quality if nothing else works
+            "worst",
         ]
-        
+
         for fmt in format_options:
-            try:
-                ydl_opts = {**self.ydl_opts, "format": fmt}
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            opts = {
+                **self.base_opts,
+                "format": fmt,
+                "http_headers": {
+                    "User-Agent": random.choice(USER_AGENTS)
+                },
+                # force generic extractor:
+                "compat_opts": ["no-youtube-legacy"],
+            }
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                try:
                     info = ydl.extract_info(url, download=False)
-                    
-                    # Debug: Log available formats
-                    if 'formats' in info:
-                        logger.debug(f"Available formats for {video_id}:")
-                        for f in info['formats']:
-                            logger.debug(f"Format ID: {f['format_id']}, Ext: {f.get('ext')}, "
-                                      f"ACodec: {f.get('acodec')}, VCodec: {f.get('vcodec')}")
-                    
-                    # Try direct URL first
-                    if 'url' in info:
-                        return info['url']
-                    
-                    # Fallback to extracting from formats
-                    formats = info.get('formats', [])
-                    audio_formats = [f for f in formats if f.get('acodec') != 'none']
-                    
-                    if audio_formats:
-                        # Prefer formats with audio only
-                        audio_only = [f for f in audio_formats if f.get('vcodec') == 'none']
-                        if audio_only:
-                            best_format = max(audio_only, key=lambda f: f.get('abr', 0))
-                            return best_format.get('url')
-                        
-                        # Fallback to any format with audio
-                        best_format = max(audio_formats, key=lambda f: f.get('abr', 0) or f.get('tbr', 0))
-                        return best_format.get('url')
-                        
-            except yt_dlp.utils.DownloadError as e:
-                logger.warning(f"Format '{fmt}' failed for {video_id}: {str(e)}")
-                continue
-            except Exception as e:
-                logger.error(f"Unexpected error with format '{fmt}' for {video_id}: {e}")
-                continue
-        
-        logger.error(f"No suitable format found for {video_id} after trying all options")
+                except ExtractorError as e:
+                    logger.warning(f"[{video_id}] no formats for '{fmt}': {e}")
+                    continue
+                except Exception as e:
+                    logger.error(f"[{video_id}] unexpected error for '{fmt}': {e}")
+                    continue
+
+                # direct URL
+                if "url" in info:
+                    return info["url"]
+
+                # try format list
+                formats = info.get("formats", [])
+                audio_formats = [f for f in formats if f.get("acodec") != "none"]
+                if audio_formats:
+                    audio_only = [f for f in audio_formats if f.get("vcodec") == "none"]
+                    choice = audio_only or audio_formats
+                    best = max(choice, key=lambda f: f.get("abr", f.get("tbr", 0)))
+                    return best.get("url")
+
+        logger.error(f"[{video_id}] no suitable format after trying all options")
         return None
 
-    def _handle_download_error(self, video_id: str, error: Exception):
-        error_msg = str(error)
-        if any(msg in error_msg for msg in ["Sign in", "--cookies"]):
-            alert = f"🚨 yt-dlp CAPTCHA/Login needed for {video_id}\nError: {error_msg.splitlines()[0]}"
-            logger.warning(alert)
-            if Config.TELEGRAM_ENABLED:
-                self._notify_telegram(alert)
-        else:
-            logger.error(f"yt-dlp DownloadError: {error_msg}")
-
-    def _notify_telegram(self, message: str):
-        try:
-            requests.post(
-                f"https://api.telegram.org/bot{Config.TELEGRAM_BOT_TOKEN}/sendMessage",
-                json={"chat_id": Config.TELEGRAM_CHAT_ID, "text": message[:4000]},
-                timeout=5
-            )
-        except Exception as e:
-            logger.error(f"Telegram notification failed: {str(e)}")
-
+# And use it:
 audio_fetcher = AudioFetcher()
