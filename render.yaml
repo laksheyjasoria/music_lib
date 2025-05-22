@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: nozzify
+    env: python
+    repo: https://github.com/laksheyjasoria/music_lib
+    branch: main
+    buildCommand: "pip install -r required.txt"
+    startCommand: "python app.py"
+    autoDeploy: true
