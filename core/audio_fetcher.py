@@ -2,11 +2,9 @@ import logging
 import yt_dlp
 import requests
 from config.config import Config
-from utils.logger import telegram_handler
+from utils.logger import setup_logger
 
-logger = logging.getLogger(__name__)
-logger.addHandler(telegram_handler)
-logger.setLevel(logging.INFO)
+logger = setup_logger(__name__)
 
 class AudioFetcher:
     def __init__(self):
