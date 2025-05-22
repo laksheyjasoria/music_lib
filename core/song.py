@@ -1,11 +1,6 @@
 import re
-import logging
-from utils.logger import telegram_handler
 from utils.title_cleaner import TitleCleaner
-
-logger = logging.getLogger(__name__)
-logger.addHandler(telegram_handler)
-logger.setLevel(logging.INFO)
+from utils.validation import is_valid_song
 
 class Song:
     def __init__(self, video_id: str, title: str, thumbnail: str, duration: int = 0):
@@ -32,7 +27,6 @@ class Song:
         )
 
     def is_valid(self) -> bool:
-        from utils.validation import is_valid_song
         return is_valid_song(self.title, self.duration)
 
     def increment_play_count(self) -> None:
