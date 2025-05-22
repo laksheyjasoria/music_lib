@@ -120,6 +120,7 @@ class AudioFetcher:
             "forceurl": True
         }
 
+
     def get_video_info(self, video_id: str):
         """
         Fetches YouTube video metadata using yt-dlp.
@@ -145,22 +146,56 @@ class AudioFetcher:
             logger.error(f"Error fetching video info: {e}")
             return None
 
-    def get_audio_url(self, video_id: str) -> str:
-        try:
-            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
-                info = ydl.extract_info(
-                    f"https://www.youtube.com/watch?v={video_id}", 
-                    download=False
-                )
-                return info.get("url")
+    # def get_audio_url(self, video_id: str) -> str:
+    #     try:
+    #         with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
+    #             info = ydl.extract_info(
+    #                 f"https://www.youtube.com/watch?v={video_id}", 
+    #                 download=False
+    #             )
+    #             return info.get("url")
                 
-        except yt_dlp.utils.DownloadError as dde:
-            self._handle_download_error(video_id, dde)
-            return None
+    #     except yt_dlp.utils.DownloadError as dde:
+    #         self._handle_download_error(video_id, dde)
+    #         return None
             
-        except Exception as e:
-            logger.error(f"Unexpected error in audio extraction: {str(e)}")
+    #     except Exception as e:
+    #         logger.error(f"Unexpected error in audio extraction: {str(e)}")
+    #         return None
+
+    def get_audio_url(self, video_id: str) -> str:
+    try:
+        with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
+            info = ydl.extract_info(
+                f"https://www.youtube.com/watch?v={video_id}",
+                download=False
+            )
+
+            formats = info.get("formats", [])
+            # Try audio-only first
+            audio_formats = [f for f in formats if f.get("vcodec") == "none" and f.get("acodec") != "none"]
+
+            for f in formats:
+                logger.error(f"Format: {f.get('format_id')} - vcodec={f.get('vcodec')} - acodec={f.get('acodec')} - url={f.get('url')}")
+
+            
+            if audio_formats:
+                best_audio = max(audio_formats, key=lambda f: f.get("abr", 0))
+                return best_audio.get("url")
+
+            # If no audio-only, fallback to best video+audio
+            av_formats = [f for f in formats if f.get("acodec") != "none"]
+            if av_formats:
+                best_av = max(av_formats, key=lambda f: f.get("tbr", 0))  # tbr = total bitrate
+                return best_av.get("url")
+
+            logger.warning(f"No usable audio/video format found for: {video_id}")
             return None
+
+    except Exception as e:
+        logger.error(f"Error extracting audio URL: {e}")
+        return None
+
 
     def _handle_download_error(self, video_id: str, error: Exception):
         error_msg = str(error)
