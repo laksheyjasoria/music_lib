@@ -15,7 +15,7 @@ class TelegramLogHandler(logging.Handler):
             return
             
         message = self.format(record)
-        self._send_to_telegram(message[:Config.Telegram.MAX_MESSAGE_LENGTH])
+        self._send_to_telegram(message[:4000])  # Telegram max message length
 
     def _send_to_telegram(self, message: str):
         try:
@@ -25,10 +25,14 @@ class TelegramLogHandler(logging.Handler):
                     "chat_id": self.chat_id,
                     "text": message
                 },
-                timeout=Config.Telegram.TIMEOUT
+                timeout=5
             )
         except Exception as e:
             print(f"Failed to send Telegram alert: {e}")
+
+# Create the handler instance
+telegram_handler = TelegramLogHandler()
+telegram_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
 
 def setup_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
@@ -41,12 +45,8 @@ def setup_logger(name: str) -> logging.Logger:
     ))
     logger.addHandler(console_handler)
     
-    # Telegram handler
+    # Telegram handler if enabled
     if Config.TELEGRAM_ENABLED:
-        telegram_handler = TelegramLogHandler()
-        telegram_handler.setFormatter(logging.Formatter(
-            "%(levelname)s - %(name)s:\n%(message)s"
-        ))
         logger.addHandler(telegram_handler)
     
     return logger
