@@ -104,12 +104,20 @@ logger.setLevel(logging.INFO)
 
 class AudioFetcher:
     def __init__(self):
+        # self.ydl_opts = {
+        #     "format": "bestaudio/best",
+        #     "noplaylist": True,
+        #     "quiet": True,
+        #     "skip_download": True,
+        #     "cookiefile": "cookies.txt"
+        # }
         self.ydl_opts = {
-            "format": "bestaudio/best",
+            "format": "bestaudio/best/bestvideo+bestaudio/best",
             "noplaylist": True,
             "quiet": True,
             "skip_download": True,
-            "cookiefile": "cookies.txt"
+            "cookiefile": "cookies.txt",
+            "forceurl": True
         }
 
     def get_video_info(self, video_id: str):
