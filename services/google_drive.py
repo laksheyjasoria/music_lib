@@ -123,6 +123,7 @@ class GoogleDriveSync:
                 title=song_data.get('title', ''),
                 thumbnail=song_data.get('thumbnail', ''),
                 duration=song_data.get('duration', 0)
+            )
             if song.is_valid():
                 song_pool._songs[song.video_id] = song
                 return True
