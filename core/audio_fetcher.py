@@ -49,60 +49,134 @@ class AudioFetcher:
             "duration": info.get("duration"),
         }
 
+    # def get_audio_url(self, video_id: str) -> str | None:
+    #     url = f"https://www.youtube.com/watch?v={video_id}"
+    #     format_options = [
+    #         "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
+    #         "bestaudio/best",
+    #         "best",
+    #         "worst",
+    #     ]
+
+    #     for fmt in format_options:
+    #         opts = {
+    #             **self.base_opts,
+    #             "format": fmt,
+    #             "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
+    #         }
+    #         try:
+    #             with yt_dlp.YoutubeDL(opts) as ydl:
+    #                 info = ydl.extract_info(url, download=False)
+    #         except Exception as e:
+    #             msg = str(e).encode("utf-8", "ignore").decode("utf-8")
+    #             logger.warning(f"[{video_id}] format '{fmt}' failed: {msg}")
+    #             continue
+
+    #         formats = info.get("formats", [])
+
+    #         # 1) if *every* format is image-only → no audio at all
+    #         if formats and all(
+    #             (f.get("acodec") == "none" and f.get("vcodec") == "none")
+    #             for f in formats
+    #         ):
+    #             logger.error(f"[{video_id}] only image-only formats available; no audio.")
+    #             return None
+
+    #         # 2) direct URL case
+    #         if info.get("url"):
+    #             return info["url"]
+
+    #         # 3) audio-only tracks
+    #         audio_only = [
+    #             f for f in formats
+    #             if f.get("acodec") != "none" and f.get("vcodec") == "none"
+    #         ]
+    #         if audio_only:
+    #             best = max(audio_only, key=lambda f: f.get("abr") or 0)
+    #             return best.get("url")
+
+    #         # 4) any format with audio
+    #         any_audio = [f for f in formats if f.get("acodec") != "none"]
+    #         if any_audio:
+    #             best = max(any_audio, key=lambda f: f.get("abr") or f.get("tbr") or 0)
+    #             return best.get("url")
+
+    #     logger.error(f"[{video_id}] no suitable audio format found after all attempts")
+    #     return None
+
     def get_audio_url(self, video_id: str) -> str | None:
-        url = f"https://www.youtube.com/watch?v={video_id}"
-        format_options = [
-            "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
-            "bestaudio/best",
-            "best",
-            "worst",
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    format_options = [
+        "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
+        "bestaudio/best",
+        "best",
+        "worst",
+    ]
+
+    last_exception = None
+
+    for fmt in format_options:
+        opts = {
+            **self.base_opts,
+            "format": fmt,
+            "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
+        }
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+        except Exception as e:
+            msg = str(e).encode("utf-8", "ignore").decode("utf-8")
+            logger.error(f"[{video_id}] format '{fmt}' failed with exception: {msg}")
+            last_exception = e
+            continue
+
+        formats = info.get("formats", [])
+
+        if not formats:
+            logger.error(f"[{video_id}] No formats found for format '{fmt}'")
+            continue
+
+        # Only image formats case
+        if all(
+            f.get("acodec") == "none" and f.get("vcodec") == "none"
+            for f in formats
+        ):
+            logger.error(f"[{video_id}] format '{fmt}' only contains image-only formats")
+            continue
+
+        # Case: direct URL
+        if info.get("url"):
+            logger.info(f"[{video_id}] format '{fmt}' direct URL returned")
+            return info["url"]
+
+        # Case: audio-only formats
+        audio_only = [
+            f for f in formats
+            if f.get("acodec") != "none" and f.get("vcodec") == "none"
         ]
+        if audio_only:
+            best = max(audio_only, key=lambda f: f.get("abr") or 0)
+            logger.info(f"[{video_id}] format '{fmt}' audio-only URL selected")
+            return best.get("url")
 
-        for fmt in format_options:
-            opts = {
-                **self.base_opts,
-                "format": fmt,
-                "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
-            }
-            try:
-                with yt_dlp.YoutubeDL(opts) as ydl:
-                    info = ydl.extract_info(url, download=False)
-            except Exception as e:
-                msg = str(e).encode("utf-8", "ignore").decode("utf-8")
-                logger.warning(f"[{video_id}] format '{fmt}' failed: {msg}")
-                continue
+        # Case: any format with audio
+        any_audio = [f for f in formats if f.get("acodec") != "none"]
+        if any_audio:
+            best = max(any_audio, key=lambda f: f.get("abr") or f.get("tbr") or 0)
+            logger.info(f"[{video_id}] format '{fmt}' audio-with-video URL selected")
+            return best.get("url")
 
-            formats = info.get("formats", [])
+        logger.error(f"[{video_id}] format '{fmt}' failed: no usable audio streams")
 
-            # 1) if *every* format is image-only → no audio at all
-            if formats and all(
-                (f.get("acodec") == "none" and f.get("vcodec") == "none")
-                for f in formats
-            ):
-                logger.error(f"[{video_id}] only image-only formats available; no audio.")
-                return None
+    # After all attempts fail
+    if last_exception:
+        msg = str(last_exception).encode("utf-8", "ignore").decode("utf-8")
+        logger.error(f"[{video_id}] no audio URL could be extracted. Last error: {msg}")
+    else:
+        logger.error(f"[{video_id}] no audio URL found despite format attempts")
 
-            # 2) direct URL case
-            if info.get("url"):
-                return info["url"]
+    return None
 
-            # 3) audio-only tracks
-            audio_only = [
-                f for f in formats
-                if f.get("acodec") != "none" and f.get("vcodec") == "none"
-            ]
-            if audio_only:
-                best = max(audio_only, key=lambda f: f.get("abr") or 0)
-                return best.get("url")
-
-            # 4) any format with audio
-            any_audio = [f for f in formats if f.get("acodec") != "none"]
-            if any_audio:
-                best = max(any_audio, key=lambda f: f.get("abr") or f.get("tbr") or 0)
-                return best.get("url")
-
-        logger.error(f"[{video_id}] no suitable audio format found after all attempts")
-        return None
 
     def _notify_telegram(self, message: str):
         try:
