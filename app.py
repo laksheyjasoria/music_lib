@@ -545,7 +545,7 @@ def background_sync():
 
 if __name__ == "__main__":
 
-    refresh_cookies():
+    refresh_cookies()
     
     # Initial sync
     if drive_sync and drive_sync.drive_enabled:
