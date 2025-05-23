@@ -544,6 +544,14 @@ def background_sync():
             time.sleep(60)
 
 if __name__ == "__main__":
+
+    try:
+        logger.info("Refreshing cookies at startup...")
+        path = download_file_from_google_drive_token()
+        logger.info(f"Token download successfully at startup: {path}")
+    except Exception as e:
+        logger.error(f"Initial cookie refresh failed: {e}")
+    
     # Initial sync
     if drive_sync and drive_sync.drive_enabled:
         drive_sync.bidirectional_sync(song_pool)
