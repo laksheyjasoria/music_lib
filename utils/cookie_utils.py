@@ -18,7 +18,7 @@ def download_file_from_google_drive(file_id=Config.DEFAULT_FILE_ID, filename=Con
     save_response_content(response, destination)
     return destination
 
-def download_file_from_google_drive_token(file_id=Config.DEFAULT_FILE_ID, filename="token.json"):
+def download_file_from_google_drive_token(file_id=Config.DEFAULT_FILE_ID, filename=Config.OAUTH_TOKEN_FILE_PATH):
     URL = "https://docs.google.com/uc?export=download"
     session = requests.Session()
     response = session.get(URL, params={'id': file_id}, stream=True)
