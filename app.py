@@ -545,7 +545,12 @@ def background_sync():
 
 if __name__ == "__main__":
 
-    refresh_cookies()
+    try:
+        path = download_file_from_google_drive()
+        convert_cookies_to_ytdlp_format()
+        logger.info({"message": f"Cookies refreshed successfully: {path}"})
+    except Exception as e:
+        logger.error(f"Cookie refresh failed: {e}")
     
     # Initial sync
     if drive_sync and drive_sync.drive_enabled:
