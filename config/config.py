@@ -22,5 +22,6 @@ class Config:
     GOOGLE_CREDENTIALS_PATH = 'credentials.json'
     FILE_ID = '1GPLMy-9aQoNHRGbPuL2CENaHaCZpUgZZ'
     SYNC_INTERVAL = 5 * 60 * 60  # 5 hours in seconds
+    OAUTH_TOKEN_FILE_PATH = "token.json" 
 
 config = Config()
