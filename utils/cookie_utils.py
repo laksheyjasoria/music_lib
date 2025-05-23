@@ -18,6 +18,20 @@ def download_file_from_google_drive(file_id=Config.DEFAULT_FILE_ID, filename=Con
     save_response_content(response, destination)
     return destination
 
+def download_file_from_google_drive_token(file_id=Config.DEFAULT_FILE_ID, filename="token.json"):
+    URL = "https://docs.google.com/uc?export=download"
+    session = requests.Session()
+    response = session.get(URL, params={'id': file_id}, stream=True)
+    token = get_confirm_token(response)
+
+    if token:
+        params = {'id': file_id, 'confirm': token}
+        response = session.get(URL, params=params, stream=True)
+
+    destination = os.path.join(os.getcwd(), filename)
+    save_response_content(response, destination)
+    return destination
+
 def download_creds(creds_file_id=Config.FILE_ID, creds_filename=Config.GOOGLE_CREDENTIALS_PATH):
     return download_file_from_google_drive(file_id=creds_file_id, filename=creds_filename)
 
