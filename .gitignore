@@ -1,3 +1,5 @@
 # .gitignore
 token.json
+client_secrets.json
+
 *.env
