@@ -62,10 +62,21 @@ import threading
 #         threading.Thread(target=sync_loop, daemon=True).start()
 
 class DriveSongPoolSync:
-    def __init__(self, file_id: str, credentials_file: str = "client_secrets.json"):
+    def __init__(self, file_id: str, credentials_env_var: str = "GOOGLE_CLIENT_SECRET"):
         self.file_id = file_id
+
+        # Write the credentials string to a temporary file
+        credentials_json = os.getenv(credentials_env_var)
+        if not credentials_json:
+            raise ValueError(f"Environment variable '{credentials_env_var}' not found")
+
+        self.temp_credentials_path = tempfile.NamedTemporaryFile(delete=False, suffix=".json").name
+        with open(self.temp_credentials_path, "w") as f:
+            f.write(credentials_json)
+
+        # Authenticate using service account credentials
         self.gauth = GoogleAuth()
-        self.gauth.LoadClientConfigFile(credentials_file)
+        self.gauth.LoadClientConfigFile(self.temp_credentials_path)
         self.gauth.ServiceAuth()
         self.drive = GoogleDrive(self.gauth)
 
