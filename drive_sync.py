@@ -105,9 +105,14 @@ class DriveSongPoolSync:
             "client_config_backend": "service",
             "service_config": {
                 "client_json_file_path": temp_json_file_path,
-                "client_user_email": client_email  # <-- Add this line
-            }
+                "client_user_email": client_email
+            },
+            "oauth_scope": [
+                "https://www.googleapis.com/auth/drive",
+                "https://www.googleapis.com/auth/drive.file"
+            ]
         }
+
         self.gauth.ServiceAuth()
 
         # Initialize GoogleDrive with authenticated gauth
