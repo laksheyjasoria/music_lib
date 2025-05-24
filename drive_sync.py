@@ -63,23 +63,47 @@ import tempfile
 
 #         threading.Thread(target=sync_loop, daemon=True).start()
 
+# class DriveSongPoolSync:
+#     def __init__(self, file_id: str, credentials_env_var: str = "GOOGLE_CLIENT_SECRET"):
+#         self.file_id = file_id
+
+#         # Write the credentials string to a temporary file
+#         credentials_json = os.getenv(credentials_env_var)
+#         if not credentials_json:
+#             raise ValueError(f"Environment variable '{credentials_env_var}' not found")
+
+#         self.temp_credentials_path = tempfile.NamedTemporaryFile(delete=False, suffix=".json").name
+#         with open(self.temp_credentials_path, "w") as f:
+#             f.write(credentials_json)
+
+#         # Authenticate using service account credentials
+#         self.gauth = GoogleAuth()
+#         self.gauth.LoadClientConfigFile(self.temp_credentials_path)
+#         self.gauth.ServiceAuth()
+#         self.drive = GoogleDrive(self.gauth)
+
 class DriveSongPoolSync:
-    def __init__(self, file_id: str, credentials_env_var: str = "GOOGLE_CLIENT_SECRET"):
-        self.file_id = file_id
+    def __init__(self, file_id):
+        # Write service account JSON string from env to temp file
+        service_account_json_str = os.getenv("GOOGLE_CLIENT_SECRET")
+        if not service_account_json_str:
+            raise RuntimeError("GOOGLE_CLIENT_SECRET env var not set")
 
-        # Write the credentials string to a temporary file
-        credentials_json = os.getenv(credentials_env_var)
-        if not credentials_json:
-            raise ValueError(f"Environment variable '{credentials_env_var}' not found")
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as temp_json_file:
+            temp_json_file.write(service_account_json_str)
+            temp_json_file_path = temp_json_file.name
 
-        self.temp_credentials_path = tempfile.NamedTemporaryFile(delete=False, suffix=".json").name
-        with open(self.temp_credentials_path, "w") as f:
-            f.write(credentials_json)
-
-        # Authenticate using service account credentials
         self.gauth = GoogleAuth()
-        self.gauth.LoadClientConfigFile(self.temp_credentials_path)
+        self.gauth.settings = {
+            "client_config_backend": "service",
+            "service_config": {
+                "client_json_file_path": temp_json_file_path
+            }
+        }
         self.gauth.ServiceAuth()
+
+        # Now you can initialize your GoogleDrive object with authenticated gauth
+        from pydrive2.drive import GoogleDrive
         self.drive = GoogleDrive(self.gauth)
 
     def load_song_pool_from_drive(self, song_pool: dict):
