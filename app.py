@@ -310,6 +310,7 @@ from utils.logger import setup_logger
 from utils.cookie_utils import download_file_from_google_drive, convert_cookies_to_ytdlp_format,download_file_from_google_drive_token
 from utils.duration_parser import iso8601_to_seconds
 from utils.validation import is_valid_song
+from drive_sync import DriveSongPoolSync
 
 app = Flask(__name__)
 CORS(app)
@@ -552,12 +553,15 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"Cookie refresh failed: {e}")
     
-    # Initial sync
-    if drive_sync and drive_sync.drive_enabled:
-        drive_sync.bidirectional_sync(song_pool)
+    # # Initial sync
+    # if drive_sync and drive_sync.drive_enabled:
+    #     drive_sync.bidirectional_sync(song_pool)
 
-    # Start background threads
-    threading.Thread(target=start_telegram_bot, daemon=True).start()
-    threading.Thread(target=background_sync, daemon=True).start()
+    # # Start background threads
+    # threading.Thread(target=start_telegram_bot, daemon=True).start()
+    # threading.Thread(target=background_sync, daemon=True).start()
+
+    drive_sync = DriveSongPoolSync(file_id=Config.SONG_POOL_FILE_ID)
+    drive_sync.sync_every_hour()
 
     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
