@@ -561,7 +561,7 @@ if __name__ == "__main__":
     # threading.Thread(target=start_telegram_bot, daemon=True).start()
     # threading.Thread(target=background_sync, daemon=True).start()
 
-    drive_sync = DriveSongPoolSync(file_id=Config.SONG_POOL_FILE_ID)
+    drive_sync = DriveSongPoolSync(file_id=Config.SONG_POOL_ID)
     drive_sync.sync_every_hour()
 
     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
