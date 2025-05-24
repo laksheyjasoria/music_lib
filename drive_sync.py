@@ -63,10 +63,9 @@ import threading
 
 class DriveSongPoolSync:
     def __init__(self, file_id: str, credentials_file: str = "client_secrets.json"):
-        # same init as before...
         self.file_id = file_id
         self.gauth = GoogleAuth()
-        self.gauth.LoadServiceConfigFile(credentials_file)
+        self.gauth.LoadClientConfigFile(credentials_file)
         self.gauth.ServiceAuth()
         self.drive = GoogleDrive(self.gauth)
 
