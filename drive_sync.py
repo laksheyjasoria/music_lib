@@ -84,27 +84,36 @@ import tempfile
 
 class DriveSongPoolSync:
     def __init__(self, file_id):
-        # Write service account JSON string from env to temp file
+        # Get the service account JSON string from env var
         service_account_json_str = os.getenv("GOOGLE_CLIENT_SECRET")
         if not service_account_json_str:
             raise RuntimeError("GOOGLE_CLIENT_SECRET env var not set")
 
+        # Write the JSON string to a temporary file
         with tempfile.NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as temp_json_file:
             temp_json_file.write(service_account_json_str)
             temp_json_file_path = temp_json_file.name
+
+        # Parse JSON string to extract client_email
+        service_account_info = json.loads(service_account_json_str)
+        client_email = service_account_info.get("client_email")
+        if not client_email:
+            raise RuntimeError("client_email not found in service account JSON")
 
         self.gauth = GoogleAuth()
         self.gauth.settings = {
             "client_config_backend": "service",
             "service_config": {
-                "client_json_file_path": temp_json_file_path
+                "client_json_file_path": temp_json_file_path,
+                "client_user_email": client_email  # <-- Add this line
             }
         }
         self.gauth.ServiceAuth()
 
-        # Now you can initialize your GoogleDrive object with authenticated gauth
+        # Initialize GoogleDrive with authenticated gauth
         from pydrive2.drive import GoogleDrive
         self.drive = GoogleDrive(self.gauth)
+        
 
     def load_song_pool_from_drive(self, song_pool: dict):
         try:
