@@ -533,6 +533,14 @@ def start_telegram_bot():
     bot = CookieRefresherBot(Config.TELEGRAM_BOT_TOKEN, song_pool)
     bot.run()
 
+def self_pinger():
+    while True:
+        try:
+            requests.get("http://localhost:5000/health")  # Use internal address in prod
+        except Exception as e:
+            print(f"[SelfPinger] Error pinging: {e}")
+        time.sleep(48)
+
 def background_sync():
     while True:
         try:
@@ -565,5 +573,5 @@ if __name__ == "__main__":
     # drive_sync.sync_every_hour()
     drive_sync = DriveSongPoolSync(file_id=Config.SONG_POOL_ID)
     drive_sync.sync_every_hour(song_pool)
-
+    threading.Thread(target=self_pinger, daemon=True).start()
     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
