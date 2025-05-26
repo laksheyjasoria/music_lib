@@ -161,6 +161,6 @@ class DriveSongPoolSync:
                 self.load_song_pool_from_drive(song_pool)
                 self.save_song_pool_to_drive(song_pool)
                 print("[DriveSync] Hourly sync complete.")
-                time.sleep(3600)
+                time.sleep(60)
 
         threading.Thread(target=sync_loop, daemon=True).start()
