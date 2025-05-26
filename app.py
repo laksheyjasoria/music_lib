@@ -536,11 +536,19 @@ def start_telegram_bot():
     bot = CookieRefresherBot(Config.TELEGRAM_BOT_TOKEN, song_pool)
     bot.run()
 
+# def is_server_responding():
+#     try:
+#         with socket.create_connection(("0.0.0.0", 5000), timeout=2):
+#             return True
+#     except (socket.timeout, ConnectionRefusedError):
+#         return False
+
 def is_server_responding():
     try:
-        with socket.create_connection(("0.0.0.0", 5000), timeout=2):
-            return True
-    except (socket.timeout, ConnectionRefusedError):
+        response = requests.get("http://127.0.0.1:5000/health", timeout=2)
+        return response.status_code == 200 and response.text.strip() == "OK"
+    except requests.exceptions.RequestException as e:
+        logging.debug(f"Health check failed: {str(e)}")
         return False
 
 def health_monitor():
