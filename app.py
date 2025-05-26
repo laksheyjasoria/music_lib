@@ -538,7 +538,7 @@ def start_telegram_bot():
 
 def is_server_responding():
     try:
-        with socket.create_connection(("127.0.0.1", 5000), timeout=2):
+        with socket.create_connection(("0.0.0.0", 5000), timeout=2):
             return True
     except (socket.timeout, ConnectionRefusedError):
         return False
