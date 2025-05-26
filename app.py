@@ -303,6 +303,8 @@ from datetime import datetime
 import socket
 import os
 import sys
+from waitress import serve
+import atexit
 
 from config.config import Config
 from core.song_pool import SongPool
@@ -545,19 +547,37 @@ def start_telegram_bot():
 
 def is_server_responding():
     try:
-        response = requests.get("http://127.0.0.1:5000/health", timeout=2)
+        response = requests.get(f"http://127.0.0.1:{Config.PORT}/health", timeout=2)
         return response.status_code == 200 and response.text.strip() == "OK"
-    except requests.exceptions.RequestException as e:
-        logging.debug(f"Health check failed: {str(e)}")
+    except requests.exceptions.RequestException:
         return False
 
+def keep_alive_pinger():
+    """Separate thread to ping server externally"""
+    while True:
+        try:
+            # Ping through actual HTTP endpoint
+            requests.get(f"http://0.0.0.0:{Config.PORT}/health", timeout=5)
+        except Exception as e:
+            logger.debug(f"Keep-alive ping failed: {str(e)}")
+        time.sleep(30)  # Ping every 30 seconds
+
 def health_monitor():
+    """Enhanced health monitor with cooldown"""
+    last_restart = time.time()
+    restart_cooldown = 300  # 5 minutes between restarts
+    
     while True:
         if not is_server_responding():
-            logging.critical("Server not responding! Attempting restart...")
-            # Graceful restart mechanism
-            os.execv(sys.executable, [sys.executable] + sys.argv)
-        time.sleep(15)  # Check every 15 seconds
+            if time.time() - last_restart > restart_cooldown:
+                logger.critical("Server not responding! Attempting restart...")
+                # Graceful restart with process separation
+                python = sys.executable
+                os.execl(python, python, *sys.argv)
+                last_restart = time.time()
+            else:
+                logger.warning("Server down but in cooldown period")
+        time.sleep(15)
 
 def background_sync():
     while True:
@@ -572,24 +592,47 @@ def background_sync():
 
 if __name__ == "__main__":
 
+#     try:
+#         path = download_file_from_google_drive()
+#         convert_cookies_to_ytdlp_format()
+#         logger.info({"message": f"Cookies refreshed successfully: {path}"})
+#     except Exception as e:
+#         logger.error(f"Cookie refresh failed: {e}")
+    
+#     # # Initial sync
+#     # if drive_sync and drive_sync.drive_enabled:
+#     #     drive_sync.bidirectional_sync(song_pool)
+
+#     # # Start background threads
+#     # threading.Thread(target=start_telegram_bot, daemon=True).start()
+#     # threading.Thread(target=background_sync, daemon=True).start()
+
+#     # drive_sync = DriveSongPoolSync(file_id=Config.SONG_POOL_ID)
+#     # drive_sync.sync_every_hour()
+#     drive_sync = DriveSongPoolSync(file_id=Config.SONG_POOL_ID)
+#     drive_sync.sync_every_hour(song_pool)
+#     threading.Thread(target=health_monitor, daemon=True).start()
+#     app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
     try:
         path = download_file_from_google_drive()
         convert_cookies_to_ytdlp_format()
-        logger.info({"message": f"Cookies refreshed successfully: {path}"})
+        logger.info(f"Cookies refreshed successfully: {path}")
     except Exception as e:
         logger.error(f"Cookie refresh failed: {e}")
+
+    # Start all maintenance threads
+    threads = [
+        threading.Thread(target=health_monitor, daemon=True),
+        threading.Thread(target=keep_alive_pinger, daemon=True),
+        threading.Thread(target=drive_sync.sync_every_hour, args=(song_pool,), daemon=True)
+    ]
     
-    # # Initial sync
-    # if drive_sync and drive_sync.drive_enabled:
-    #     drive_sync.bidirectional_sync(song_pool)
+    for t in threads:
+        t.start()
 
-    # # Start background threads
-    # threading.Thread(target=start_telegram_bot, daemon=True).start()
-    # threading.Thread(target=background_sync, daemon=True).start()
+    # Production server configuration
+    logger.info(f"Starting server on port {Config.PORT}")
+    serve(app, host="0.0.0.0", port=Config.PORT, threads=4)
 
-    # drive_sync = DriveSongPoolSync(file_id=Config.SONG_POOL_ID)
-    # drive_sync.sync_every_hour()
-    drive_sync = DriveSongPoolSync(file_id=Config.SONG_POOL_ID)
-    drive_sync.sync_every_hour(song_pool)
-    threading.Thread(target=health_monitor, daemon=True).start()
-    app.run(host="0.0.0.0", port=Config.PORT, debug=Config.DEBUG)
+    # Cleanup on exit
+    atexit.register(lambda: logger.info("Server shutting down"))
