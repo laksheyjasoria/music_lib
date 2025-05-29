@@ -621,14 +621,14 @@ if __name__ == "__main__":
         logger.error(f"Cookie refresh failed: {e}")
 
     # Start all maintenance threads
-    threads = [
-        # threading.Thread(target=health_monitor, daemon=True),
-        # threading.Thread(target=keep_alive_pinger, daemon=True),
-        threading.Thread(target=drive_sync.sync_every_hour, args=(song_pool,), daemon=True)
-    ]
+    # threads = [
+    #     # threading.Thread(target=health_monitor, daemon=True),
+    #     # threading.Thread(target=keep_alive_pinger, daemon=True),
+    #     threading.Thread(target=drive_sync.sync_every_hour, args=(song_pool,), daemon=True)
+    # ]
     
-    for t in threads:
-        t.start()
+    # for t in threads:
+    #     t.start()
 
     # Production server configuration
     logger.info(f"Starting server on port {Config.PORT}")
