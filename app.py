@@ -622,8 +622,8 @@ if __name__ == "__main__":
 
     # Start all maintenance threads
     threads = [
-        threading.Thread(target=health_monitor, daemon=True),
-        threading.Thread(target=keep_alive_pinger, daemon=True),
+        # threading.Thread(target=health_monitor, daemon=True),
+        # threading.Thread(target=keep_alive_pinger, daemon=True),
         threading.Thread(target=drive_sync.sync_every_hour, args=(song_pool,), daemon=True)
     ]
     
