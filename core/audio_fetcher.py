@@ -910,29 +910,78 @@ class AudioFetcher:
             logger.error(f"[{video_id}] get_video_info failed: {msg}")
             return None
 
-    def get_audio_url(self, video_id: str) -> str | None:
-        url = f"https://www.youtube.com/watch?v={video_id}"
-        logger.info(f"[{video_id}] Starting audio URL extraction")
+def get_audio_url(self, video_id: str) -> str | None:
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    logger.info(f"[{video_id}] Starting audio URL extraction")
+    
+    # Ultra-optimized options with aggressive timeouts
+    opts = {
+        **self.base_opts,
+        "format": "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
+        "socket_timeout": 3,  # Aggressive network timeout
+        "timeout": 4,         # Overall operation timeout
+        "cookiefile": "cookies.txt",
+        "skip_download": True,
+        "extractor_args": {"youtube": {"skip": ["dash", "hls", "translated_subs"]}},
+        "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
+        "nocheckcertificate": True,
+        "retries": 0,  # Disable retries
+        "fragment_retries": 0,
+        "ignoreerrors": False,
+        "force_ipv4": True,  # IPv6 can be slower
+        "geo_bypass": True,
+        "geo_bypass_country": "US",
+        "quiet": True,  # Reduce processing overhead
+    }
 
-        opts = {
-            **self.base_opts,
-            "format": "bestaudio/best",
-            "socket_timeout": 5,
-            "cookiefile": "cookies.txt",
+    try:
+        # First attempt: Fast extraction with process=False
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=False, process=False)
+        
+        # Direct URL extraction (fastest path)
+        if url_out := info.get("url"):
+            logger.info(f"[{video_id}] Direct URL extracted: {url_out[:60]}...")
+            return url_out
+        
+        # Lightning-fast format scanning
+        if formats := info.get('formats'):
+            # Priority 1: Audio-only streams
+            for f in formats:
+                if f.get('acodec') != 'none' and f.get('vcodec') == 'none' and f.get('url'):
+                    logger.info(f"[{video_id}] Selected audio-only stream")
+                    return f['url']
+            
+            # Priority 2: Any audio stream
+            for f in formats:
+                if f.get('acodec') != 'none' and f.get('url'):
+                    logger.info(f"[{video_id}] Selected audio stream")
+                    return f['url']
+    
+    except Exception as e:
+        msg = str(e).encode("utf-8", "ignore").decode("utf-8")
+        logger.warning(f"[{video_id}] Fast extraction failed: {msg[:100]}")
+
+    try:
+        # Second attempt: Barebones fallback
+        logger.info(f"[{video_id}] Trying fallback method")
+        with yt_dlp.YoutubeDL({
+            "format": "worstaudio/worst",  # Fastest to extract
+            "socket_timeout": 2,
+            "timeout": 3,
             "skip_download": True,
-            "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
+            "quiet": True,
             "nocheckcertificate": True,
-        }
-        try:
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-            if url_out := info.get("url"):
-                logger.info(f"[{video_id}] Audio URL extracted: {url_out}")
-                return url_out
-        except Exception as e:
-            msg = str(e).encode("utf-8", "ignore").decode("utf-8")
-            logger.error(f"[{video_id}] get_audio_url failed: {msg}")
-        return None
+            "force_ipv4": True,
+        }) as ydl:
+            info = ydl.extract_info(url, download=False)
+            return info.get('url')
+            
+    except Exception as e:
+        msg = str(e).encode("utf-8", "ignore").decode("utf-8")
+        logger.error(f"[{video_id}] Fallback extraction failed: {msg[:200]}")
+    
+    return None
 
     def _notify_telegram(self, message: str):
         try:
