@@ -325,7 +325,7 @@ def get_audio_url(self, video_id: str) -> str | None:
         **self.base_opts,
         "format": "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
         "socket_timeout": 5,
-        "cookiefile": utils.convert_cookies_to_ytdlp_format(),
+        "cookiefile": "cookies.txt",
         "skip_download": True,
         "extractor_args": {"youtube": {"skip": ["dash", "hls"]}},
         "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
