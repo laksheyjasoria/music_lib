@@ -1236,8 +1236,8 @@
 
 import logging
 import random
-import re  # Add missing import
-import time  # Add missing import
+import re
+import time
 import requests
 import yt_dlp
 from config.config import Config
@@ -1266,12 +1266,12 @@ class AudioFetcher:
 
     def get_video_info(self, video_id: str) -> dict | None:
         # ... existing get_video_info implementation ... (unchanged)
+        pass
 
     def get_audio_url(self, video_id: str) -> tuple[str, int] | None:
         """Synchronous audio URL extraction with optimized settings"""
         url = f"https://www.youtube.com/watch?v={video_id}"
-        
-        # Single attempt with optimized settings
+
         opts = {
             "format": "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
             "noplaylist": True,
@@ -1291,28 +1291,26 @@ class AudioFetcher:
             "geo_bypass": True,
             "geo_bypass_country": "US",
         }
-        
+
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                
-            # Process results
+
             if url_out := info.get("url"):
                 expiry = self._extract_expiry(url_out) or int(time.time()) + 21600
                 return url_out, expiry
-                
+
             if formats := info.get("formats"):
                 best_stream = self._find_best_audio_stream(formats)
                 if best_stream and best_stream.get("url"):
                     expiry = self._extract_expiry(best_stream["url"]) or int(time.time()) + 21600
                     return best_stream["url"], expiry
-                    
+
             return None
         except Exception as e:
             logger.error(f"[{video_id}] Audio extraction failed: {str(e)[:200]}")
             return None
 
-    # ADD MISSING METHODS BELOW
     def _extract_expiry(self, url: str) -> int | None:
         """Extracts expiration timestamp from Google video URLs"""
         match = re.search(r'expire=(\d+)', url)
@@ -1325,19 +1323,16 @@ class AudioFetcher:
 
     def _find_best_audio_stream(self, formats: list) -> dict | None:
         """Select best available audio stream"""
-        # Audio-only streams
         audio_only = [
             f for f in formats
             if f.get("acodec") != "none" and f.get("vcodec") == "none" and f.get("url")
         ]
-        
-        # Audio+video streams (as fallback)
+
         audio_with_video = [
             f for f in formats
             if f.get("acodec") != "none" and f.get("vcodec") != "none" and f.get("url")
         ]
-        
-        # Prioritize audio-only streams
+
         if audio_only:
             return max(
                 audio_only,
@@ -1350,8 +1345,7 @@ class AudioFetcher:
             )
         return None
 
-    def _notify_telegram(self, message: str):
-        # ... existing _notify_telegram implementation ... (unchanged)
+
 
 # Singleton instance
 audio_fetcher = AudioFetcher()
@@ -1359,6 +1353,5 @@ audio_fetcher = AudioFetcher()
 def get_video_info(video_id: str) -> dict | None:
     return audio_fetcher.get_video_info(video_id)
 
-# FIX RETURN TYPE TO MATCH NEW SIGNATURE
 def get_audio_url(video_id: str) -> tuple[str, int] | None:
     return audio_fetcher.get_audio_url(video_id)
