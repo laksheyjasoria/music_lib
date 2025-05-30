@@ -338,28 +338,41 @@ last_trending_fetch = None
 def health_check():
     return "OK", 200
 
+# @app.route("/get_audio", methods=["GET"])
+# def get_audio():
+#     video_id = request.args.get("videoId")
+#     if not video_id:
+#         return jsonify({"error": "Missing videoId parameter"}), 400
+
+#     song = song_pool.get_song(video_id)
+#     if not song:
+#         try:
+#             song = Song.from_video_id(video_id)
+#             song_pool.add_song(song)
+#         except ValueError as e:
+#             return jsonify({"error": str(e)}), 400
+
+#     if not song.audio_url:
+#         from core.audio_fetcher import audio_fetcher
+#         audio_url = audio_fetcher.get_audio_url(video_id)
+#         if not audio_url:
+#             return jsonify({"error": "Failed to get audio URL"}), 500
+#         song.update_audio_url(audio_url)
+
+#     return jsonify(song.to_dict())
 @app.route("/get_audio", methods=["GET"])
 def get_audio():
     video_id = request.args.get("videoId")
     if not video_id:
         return jsonify({"error": "Missing videoId parameter"}), 400
-
+    
+    # Try to get immediate audio URL
     song = song_pool.get_song(video_id)
-    if not song:
-        try:
-            song = Song.from_video_id(video_id)
-            song_pool.add_song(song)
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-
-    if not song.audio_url:
-        from core.audio_fetcher import audio_fetcher
-        audio_url = audio_fetcher.get_audio_url(video_id)
-        if not audio_url:
-            return jsonify({"error": "Failed to get audio URL"}), 500
-        song.update_audio_url(audio_url)
-
-    return jsonify(song.to_dict())
+    if song and song.audio_url and not song.is_audio_expired():
+        return jsonify(song.to_dict())
+    
+    # Handle all cases where we need to fetch audio URL
+    return song_pool.get_or_create_song_with_audio(video_id)
 
 @app.route("/search_music", methods=["GET"])
 def search_music():
