@@ -1269,48 +1269,51 @@ class AudioFetcher:
         pass
 
     def get_audio_url(self, video_id: str) -> tuple[str, int] | None:
-        """Synchronous audio URL extraction with optimized settings"""
+        """Optimized audio URL extraction with aggressive timeouts"""
         url = f"https://www.youtube.com/watch?v={video_id}"
-
+        
+        # Aggressive timeouts for fast response
         opts = {
             "format": "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
             "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
-            "socket_timeout": 5,
-            "timeout": 8,
+            "socket_timeout": 2,  # Reduced from 5
+            "timeout": 3,          # Reduced from 8
             "cookiefile": "cookies.txt",
             "skip_download": True,
             "extractor_args": {"youtube": {"skip": ["dash", "hls", "translated_subs"]}},
             "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
             "nocheckcertificate": True,
             "force_ipv4": True,
-            "retries": 1,
-            "fragment_retries": 1,
+            "retries": 0,          # No retries for speed
+            "fragment_retries": 0,
             "ignoreerrors": False,
             "geo_bypass": True,
             "geo_bypass_country": "US",
         }
-
+        
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-
+                
+            # Process results
             if url_out := info.get("url"):
                 expiry = self._extract_expiry(url_out) or int(time.time()) + 21600
                 return url_out, expiry
-
+                
             if formats := info.get("formats"):
-                best_stream = self._find_best_audio_stream(formats)
-                if best_stream and best_stream.get("url"):
-                    expiry = self._extract_expiry(best_stream["url"]) or int(time.time()) + 21600
-                    return best_stream["url"], expiry
-
+                # Fast selection instead of full best-stream search
+                for f in formats:
+                    if f.get("acodec") != "none" and f.get("url"):
+                        expiry = self._extract_expiry(f["url"]) or int(time.time()) + 21600
+                        return f["url"], expiry
+                    
             return None
         except Exception as e:
             logger.error(f"[{video_id}] Audio extraction failed: {str(e)[:200]}")
             return None
-
+            
     def _extract_expiry(self, url: str) -> int | None:
         """Extracts expiration timestamp from Google video URLs"""
         match = re.search(r'expire=(\d+)', url)
