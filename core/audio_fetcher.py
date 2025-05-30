@@ -248,74 +248,189 @@ class AudioFetcher:
             "duration": info.get("duration"),
         }
 
-    def get_audio_url(self, video_id: str) -> str | None:
-        url = f"https://www.youtube.com/watch?v={video_id}"
-        format_options = [
-            "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
-            "bestaudio/best",
-            "best",
-            "worst",
-        ]
+    # def get_audio_url(self, video_id: str) -> str | None:
+    #     url = f"https://www.youtube.com/watch?v={video_id}"
+    #     format_options = [
+    #         "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
+    #         "bestaudio/best",
+    #         "best",
+    #         "worst",
+    #     ]
 
-        last_exception = None
+    #     last_exception = None
 
-        for fmt in format_options:
-            opts = {
-                **self.base_opts,
-                "format": fmt,
-                "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
-            }
-            try:
-                with yt_dlp.YoutubeDL(opts) as ydl:
-                    info = ydl.extract_info(url, download=False)
-            except Exception as e:
-                msg = str(e).encode("utf-8", "ignore").decode("utf-8")
-                logger.error(f"[{video_id}] format '{fmt}' failed with exception: {msg}")
-                last_exception = e
-                continue
+    #     for fmt in format_options:
+    #         opts = {
+    #             **self.base_opts,
+    #             "format": fmt,
+    #             "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
+    #         }
+    #         try:
+    #             with yt_dlp.YoutubeDL(opts) as ydl:
+    #                 info = ydl.extract_info(url, download=False)
+    #         except Exception as e:
+    #             msg = str(e).encode("utf-8", "ignore").decode("utf-8")
+    #             logger.error(f"[{video_id}] format '{fmt}' failed with exception: {msg}")
+    #             last_exception = e
+    #             continue
 
-            formats = info.get("formats", [])
+    #         formats = info.get("formats", [])
 
-            if not formats:
-                logger.error(f"[{video_id}] No formats found for format '{fmt}'")
-                continue
+    #         if not formats:
+    #             logger.error(f"[{video_id}] No formats found for format '{fmt}'")
+    #             continue
 
-            if all(
-                f.get("acodec") == "none" and f.get("vcodec") == "none"
-                for f in formats
-            ):
-                logger.error(f"[{video_id}] format '{fmt}' only contains image-only formats")
-                continue
+    #         if all(
+    #             f.get("acodec") == "none" and f.get("vcodec") == "none"
+    #             for f in formats
+    #         ):
+    #             logger.error(f"[{video_id}] format '{fmt}' only contains image-only formats")
+    #             continue
 
-            if info.get("url"):
-                logger.info(f"[{video_id}] format '{fmt}' direct URL returned")
-                return info["url"]
+    #         if info.get("url"):
+    #             logger.info(f"[{video_id}] format '{fmt}' direct URL returned")
+    #             return info["url"]
 
-            audio_only = [
-                f for f in formats
-                if f.get("acodec") != "none" and f.get("vcodec") == "none"
-            ]
-            if audio_only:
-                best = max(audio_only, key=lambda f: f.get("abr") or 0)
-                logger.info(f"[{video_id}] format '{fmt}' audio-only URL selected")
-                return best.get("url")
+    #         audio_only = [
+    #             f for f in formats
+    #             if f.get("acodec") != "none" and f.get("vcodec") == "none"
+    #         ]
+    #         if audio_only:
+    #             best = max(audio_only, key=lambda f: f.get("abr") or 0)
+    #             logger.info(f"[{video_id}] format '{fmt}' audio-only URL selected")
+    #             return best.get("url")
 
-            any_audio = [f for f in formats if f.get("acodec") != "none"]
-            if any_audio:
-                best = max(any_audio, key=lambda f: f.get("abr") or f.get("tbr") or 0)
-                logger.info(f"[{video_id}] format '{fmt}' audio-with-video URL selected")
-                return best.get("url")
+    #         any_audio = [f for f in formats if f.get("acodec") != "none"]
+    #         if any_audio:
+    #             best = max(any_audio, key=lambda f: f.get("abr") or f.get("tbr") or 0)
+    #             logger.info(f"[{video_id}] format '{fmt}' audio-with-video URL selected")
+    #             return best.get("url")
 
-            logger.error(f"[{video_id}] format '{fmt}' failed: no usable audio streams")
+    #         logger.error(f"[{video_id}] format '{fmt}' failed: no usable audio streams")
 
-        if last_exception:
-            msg = str(last_exception).encode("utf-8", "ignore").decode("utf-8")
-            logger.error(f"[{video_id}] no audio URL could be extracted. Last error: {msg}")
+    #     if last_exception:
+    #         msg = str(last_exception).encode("utf-8", "ignore").decode("utf-8")
+    #         logger.error(f"[{video_id}] no audio URL could be extracted. Last error: {msg}")
+    #     else:
+    #         logger.error(f"[{video_id}] no audio URL found despite format attempts")
+
+    #     return None
+
+def get_audio_url(self, video_id: str) -> str | None:
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    logger.info(f"[{video_id}] Starting audio URL extraction")
+
+    # Primary extraction attempt (optimized for speed)
+    primary_opts = {
+        **self.base_opts,
+        "format": "bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best",
+        "socket_timeout": 5,
+        "cookiefile": utils.convert_cookies_to_ytdlp_format(),
+        "skip_download": True,
+        "extractor_args": {"youtube": {"skip": ["dash", "hls"]}},
+        "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
+        "nocheckcertificate": True,
+    }
+
+    try:
+        logger.info(f"[{video_id}] Primary extraction attempt")
+        with yt_dlp.YoutubeDL(primary_opts) as ydl:
+            info = ydl.extract_info(url, download=False, process=False)
+
+        if direct_url := info.get("url"):
+            logger.info(f"[{video_id}] Direct URL found via primary method")
+            return direct_url
+
+        if formats := info.get("formats"):
+            # Find best audio stream in single pass
+            best = None
+            for f in formats:
+                if f.get("acodec") == "none" or not f.get("url"):
+                    continue
+
+                # Prioritize audio-only > high bitrate > low filesize
+                is_audio_only = (f.get("vcodec") == "none")
+                bitrate = f.get("abr", 0) or f.get("tbr", 0)
+                filesize = f.get("filesize", float("inf"))
+
+                if best is None:
+                    best = f
+                    continue
+
+                # Ranking: audio-only first, then highest bitrate, then smallest filesize
+                current_score = (is_audio_only, bitrate, -filesize)
+                best_score = (
+                    best.get("vcodec") == "none",
+                    best.get("abr", 0) or best.get("tbr", 0),
+                    -best.get("filesize", float("inf")),
+                )
+                if current_score > best_score:
+                    best = f
+
+            if best:
+                logger.info(f"[{video_id}] Selected audio stream: {best.get('format_id')}")
+                return best["url"]
+
+        logger.warning(f"[{video_id}] No valid audio formats found in primary extraction")
+
+    except yt_dlp.utils.DownloadError as dde:
+        msg = str(dde).encode("utf-8", "ignore").decode("utf-8")
+        if any(keyword in msg for keyword in ("Sign in", "bot", "cookies")):
+            alert = (
+                f"🚨 CAPTCHA/Login required for {video_id}: "
+                f"{msg.splitlines()[0][:100]}"
+            )
+            logger.error(f"[{video_id}] {alert}")
+            notify_telegram(alert)
         else:
-            logger.error(f"[{video_id}] no audio URL found despite format attempts")
+            logger.error(
+                f"[{video_id}] Primary download failed: {msg.splitlines()[0][:200]}"
+            )
+    except Exception as e:
+        msg = str(e).encode("utf-8", "ignore").decode("utf-8")
+        logger.error(
+            f"[{video_id}] Unexpected error in primary extraction: {msg[:200]}"
+        )
 
-        return None
+    # Fast fallback attempt
+    logger.warning(f"[{video_id}] Attempting fallback extraction")
+    try:
+        fallback_opts = {
+            "quiet": True,
+            "socket_timeout": 3,
+            "format": "bestaudio/best",
+            "skip_download": True,
+            "nocheckcertificate": True,
+            "http_headers": {"User-Agent": random.choice(USER_AGENTS)},
+        }
 
+        with yt_dlp.YoutubeDL(fallback_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+        if fallback_url := info.get("url"):
+            logger.info(f"[{video_id}] Fallback URL found")
+            return fallback_url
+
+        if formats := info.get("formats", []):
+            for f in formats:
+                if f.get("acodec") != "none" and f.get("url"):
+                    logger.info(
+                        f"[{video_id}] Using fallback stream: {f.get('format_id')}"
+                    )
+                    return f["url"]
+
+        logger.error(f"[{video_id}] No valid streams in fallback extraction")
+
+    except Exception as e:
+        msg = str(e).encode("utf-8", "ignore").decode("utf-8")
+        logger.error(
+            f"[{video_id}] Fallback extraction failed: {msg[:200]}"
+        )
+
+    logger.error(f"[{video_id}] All extraction attempts failed")
+    return None
+
+    
     def _notify_telegram(self, message: str):
         try:
             requests.post(
