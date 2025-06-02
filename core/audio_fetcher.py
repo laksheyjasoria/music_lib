@@ -1600,18 +1600,14 @@
 #     return audio_fetcher.get_audio_url(video_id)
 
 from config.config import Config
-from utils.telegram_logger import telegram_handler
 import logging
 import yt_dlp
-import utilsV2
 import requests
 import random
 import time
+from utils.logger import setup_logger
 
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.addHandler(telegram_handler)
-logger.setLevel(logging.INFO)
+logger = setup_logger(__name__)
 
 class AudioFetcher:
     def __init__(self):
