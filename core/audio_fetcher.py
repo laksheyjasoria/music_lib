@@ -1605,6 +1605,7 @@ import yt_dlp
 import requests
 import random
 import time
+import re
 from utils.logger import setup_logger
 from typing import Optional
 
@@ -1612,11 +1613,10 @@ logger = setup_logger(__name__)
 
 class AudioFetcher:
     def __init__(self):
-        # Common options for all operations
         self.base_opts = {
             "noplaylist": True,
             "quiet": True,
-            "no_warnings": False,  # We want to see warnings
+            "no_warnings": False,
             "cookiefile": "cookies.txt",
             "socket_timeout": 2,
             "timeout": 3,
@@ -1633,20 +1633,16 @@ class AudioFetcher:
             },
             "http_headers": {"User-Agent": self._get_random_user_agent()},
         }
-        
-        # Specific options for audio extraction
+
         self.audio_opts = {**self.base_opts, "format": "140/bestaudio[ext=m4a]/bestaudio"}
-        
-        # Specific options for video info extraction
         self.info_opts = {
             **self.base_opts,
-            "writethumbnail": False,  # Don't download, just get URL
-            "getthumbnail": True,     # Ensure thumbnail is fetched
-            "format": None,           # Don't process formats for faster extraction
+            "writethumbnail": False,
+            "getthumbnail": True,
+            "format": None,
         }
 
-    def _get_random_user_agent(self):
-        """Return a random user agent to prevent rate limiting"""
+    def _get_random_user_agent(self) -> str:
         agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
@@ -1654,70 +1650,52 @@ class AudioFetcher:
         ]
         return random.choice(agents)
 
-    def get_video_info(self, video_id: str):
-        """Fetch YouTube video metadata with optimized settings."""
+    def get_video_info(self, video_id: str) -> Optional[dict]:
         url = f'https://www.youtube.com/watch?v={video_id}'
         try:
             start_time = time.time()
             with yt_dlp.YoutubeDL(self.info_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                
-                # Extract relevant information
                 result = {
                     'title': info.get('title', ''),
                     'duration': info.get('duration', 0),
                     'thumbnail': self._get_best_thumbnail(info),
                     'video_id': video_id
                 }
-                
-                logger.info(f"Fetched video info for {video_id} in {time.time()-start_time:.2f}s")
+                logger.info(f"Fetched video info for {video_id} in {time.time() - start_time:.2f}s")
                 return result
-                
         except Exception as e:
             logger.error(f"Error fetching video info: {e}")
             return None
 
-    def get_audio_url(self, video_id: str) -> Optional[str]:
-        """Get audio URL with optimized extraction settings."""
+    def get_audio_url(self, video_id: str) -> Optional[tuple[str, int]]:
         url = f'https://www.youtube.com/watch?v={video_id}'
-        
         try:
             start_time = time.time()
             with yt_dlp.YoutubeDL(self.audio_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                
-                # 1. Try direct URL (works for format 140)
+
                 if 'url' in info:
-                    logger.info(f"Audio URL found directly for {video_id} in {time.time()-start_time:.2f}s")
+                    logger.info(f"Audio URL found directly for {video_id} in {time.time() - start_time:.2f}s")
                     expiry = self._extract_expiry(info["url"]) or int(time.time()) + 21600
-                        # logger.info(f"[{video_id}] Selected audio stream with expiry {expiry}")
                     return info["url"], expiry
-                    # return info['url']
-                
-                # 2. Fallback to scanning formats
+
                 formats = info.get('formats', [])
-                
-                # Get all audio formats (including those with video)
                 audio_formats = [
-                    f for f in formats 
+                    f for f in formats
                     if f.get('acodec') != 'none' and f.get('url')
                 ]
-                
+
                 if not audio_formats:
                     logger.error(f"No audio formats found for {video_id}")
                     return None
-                
-                # Select format with highest audio bitrate
-                best_format = max(
-                    audio_formats,
-                    key=lambda f: f.get('abr', 0) or f.get('tbr', 0)
-                )
-                
-                logger.info(f"Audio URL found via formats scan for {video_id} in {time.time()-start_time:.2f}s")
-                extractedURL= best_format.get('url')
-                expiry = self._extract_expiry(extractedURL) or int(time.time()) + 21600
-                return extractedURL, expiry
-                
+
+                best_format = max(audio_formats, key=lambda f: f.get('abr', 0) or f.get('tbr', 0))
+                extracted_url = best_format.get('url')
+                expiry = self._extract_expiry(extracted_url) or int(time.time()) + 21600
+                logger.info(f"Audio URL found via formats scan for {video_id} in {time.time() - start_time:.2f}s")
+                return extracted_url, expiry
+
         except yt_dlp.utils.DownloadError as e:
             self._handle_download_error(video_id, e)
             return None
@@ -1726,47 +1704,22 @@ class AudioFetcher:
             return None
 
     def _get_best_thumbnail(self, info: dict) -> str:
-        """Select the highest quality available thumbnail"""
-        # Priority order for thumbnail quality
         quality_order = ['maxres', 'standard', 'high', 'medium', 'default']
-        
-        # Check if we have a thumbnails list
         if 'thumbnails' in info:
             for quality in quality_order:
                 for thumb in info['thumbnails']:
                     if thumb.get('id') == quality:
                         return thumb['url']
-        
-        # Fallback to regular thumbnail field
         return info.get('thumbnail', '')
 
     def _handle_download_error(self, video_id: str, error: Exception):
-        """Handle download errors with Telegram notifications"""
         error_msg = str(error)
         if any(msg in error_msg for msg in ["Sign in", "--cookies"]):
-            alert = (
-                f"🚨 yt-dlp CAPTCHA/Login needed for {video_id}\n"
-                f"Error: {error_msg.splitlines()[0]}"
-            )
-            logger.warning(alert)
-            if Config.TELEGRAM_ENABLED:
-                self._notify_telegram(alert)
+            logger.warning(f"🚨 yt-dlp CAPTCHA/Login needed for {video_id}: {error_msg.splitlines()[0]}")
         else:
             logger.error(f"yt-dlp DownloadError: {error_msg}")
 
-    def _notify_telegram(self, message: str):
-        """Send notification to Telegram"""
-        try:
-            requests.post(
-                f"https://api.telegram.org/bot{Config.TELEGRAM_BOT_TOKEN}/sendMessage",
-                json={"chat_id": Config.TELEGRAM_CHAT_ID, "text": message[:4000]},
-                timeout=5
-            )
-        except Exception as e:
-            logger.error(f"Telegram notification failed: {str(e)}")
-
-    def _extract_expiry(self, url: str) -> int | None:
-        """Extracts expiration timestamp from Google video URLs"""
+    def _extract_expiry(self, url: str) -> Optional[int]:
         match = re.search(r'expire=(\d+)', url)
         if match:
             try:
@@ -1778,8 +1731,9 @@ class AudioFetcher:
 # Singleton instance
 audio_fetcher = AudioFetcher()
 
-def get_audio_url(video_id: str) -> str:
+def get_audio_url(video_id: str) -> Optional[tuple[str, int]]:
     return audio_fetcher.get_audio_url(video_id)
 
-def get_video_info(video_id: str) -> str:
+def get_video_info(video_id: str) -> Optional[dict]:
     return audio_fetcher.get_video_info(video_id)
+
