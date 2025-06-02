@@ -1599,7 +1599,7 @@
 # def get_audio_url(video_id: str) -> tuple[str, int] | None:
 #     return audio_fetcher.get_audio_url(video_id)
 
-from config import Config
+from config.config import Config
 from utils.telegram_logger import telegram_handler
 import logging
 import yt_dlp
