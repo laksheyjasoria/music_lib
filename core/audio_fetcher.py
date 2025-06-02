@@ -1689,7 +1689,10 @@ class AudioFetcher:
                 # 1. Try direct URL (works for format 140)
                 if 'url' in info:
                     logger.info(f"Audio URL found directly for {video_id} in {time.time()-start_time:.2f}s")
-                    return info['url']
+                    expiry = self._extract_expiry(info["url"]) or int(time.time()) + 21600
+                        # logger.info(f"[{video_id}] Selected audio stream with expiry {expiry}")
+                    return info["url"], expiry
+                    # return info['url']
                 
                 # 2. Fallback to scanning formats
                 formats = info.get('formats', [])
@@ -1711,7 +1714,9 @@ class AudioFetcher:
                 )
                 
                 logger.info(f"Audio URL found via formats scan for {video_id} in {time.time()-start_time:.2f}s")
-                return best_format.get('url')
+                extractedURL= best_format.get('url')
+                expiry = self._extract_expiry(extractedURL) or int(time.time()) + 21600
+                return extractedURL, expiry
                 
         except yt_dlp.utils.DownloadError as e:
             self._handle_download_error(video_id, e)
@@ -1759,6 +1764,16 @@ class AudioFetcher:
             )
         except Exception as e:
             logger.error(f"Telegram notification failed: {str(e)}")
+
+    def _extract_expiry(self, url: str) -> int | None:
+        """Extracts expiration timestamp from Google video URLs"""
+        match = re.search(r'expire=(\d+)', url)
+        if match:
+            try:
+                return int(match.group(1))
+            except ValueError:
+                pass
+        return None
 
 # Singleton instance
 audio_fetcher = AudioFetcher()
