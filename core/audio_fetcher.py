@@ -1606,6 +1606,7 @@ import requests
 import random
 import time
 from utils.logger import setup_logger
+from typing import Optional
 
 logger = setup_logger(__name__)
 
